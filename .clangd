@@ -1,0 +1,16 @@
+CompileFlags:
+  CompilationDatabase: ./build/
+ 
+Hover:
+  ShowAKA: Yes
+
+InlayHints:
+  Designators: Yes
+  Enabled: Yes
+  ParameterNames: No
+  DeducedTypes: Yes
+
+Diagnostics:
+  Suppress: 
+    - unused-includes
+    - -Wparentheses

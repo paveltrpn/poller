@@ -1,0 +1,28 @@
+BasedOnStyle: Google
+BreakBeforeBraces: Custom
+IndentWidth: 4
+TabWidth: 4
+SpacesBeforeTrailingComments: 2
+BreakConstructorInitializers: BeforeComma
+BreakInheritanceList: BeforeComma
+ConstructorInitializerAllOnOneLineOrOnePerLine: 'false'
+Language: Cpp
+SpacesInParentheses: 'true'
+SortIncludes: 'false'
+ReflowComments: 'false'
+AllowShortFunctionsOnASingleLine: InlineOnly
+StatementMacros: [Q_OBJECT, Q_UNUSED, QT_REQUIRE_VERSION]
+Standard: c++11
+AlignOperands: 'true'
+AccessModifierOffset: -4
+BraceWrapping:
+  AfterClass:      false
+  AfterControlStatement: false
+  AfterEnum:       false
+  AfterFunction:   false
+  AfterObjCDeclaration: false
+  AfterStruct:     false
+  AfterUnion:      false
+  BeforeCatch:     false
+  BeforeElse:      false
+  IndentBraces:    false
