@@ -60,7 +60,7 @@ void Poller::performRequest( const std::string& url, CallbackFn cb ) {
     Request* requestPtr = new Request{ std::move( cb ), {} };
     poller::Handle handle;
     handle.setopt<CURLOPT_URL>( url );
-    handle.setopt<CURLOPT_USERAGENT>( "curl_coro/0.1" );
+    handle.setopt<CURLOPT_USERAGENT>( "poller/0.1" );
     handle.setopt<CURLOPT_WRITEFUNCTION>( writeToRequest );
     handle.setopt<CURLOPT_WRITEDATA>( requestPtr );
     handle.setopt<CURLOPT_PRIVATE>( requestPtr );

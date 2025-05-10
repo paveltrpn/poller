@@ -11,6 +11,7 @@ set(CMAKE_BUILD_TYPE Debug)
 project(poller)
 
 include_directories("modules/poller")
+include_directories("modules/io")
 
 if (DEFINED ENV{NLOHMANN_JSON_DIR} AND NOT "$ENV{NLOHMANN_JSON_DIR}" STREQUAL "")
     message( "NLOHMANN_JSON_DIR is set to $ENV{NLOHMANN_JSON_DIR}")
@@ -41,6 +42,10 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON )
 file(GLOB MOD_POLLER_SRC  modules/poller/*.cpp)
 add_library(poller)
 target_sources(poller PRIVATE ${MOD_POLLER_SRC})
+
+file(GLOB MOD_IO_SRC  modules/io/*.cpp)
+add_library(io)
+target_sources(io PRIVATE ${MOD_IO_SRC})
 
 add_subdirectory(test)
 
