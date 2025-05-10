@@ -1,5 +1,6 @@
 CompileFlags:
   CompilationDatabase: ./build/
+  Add: [-std=c++23]
  
 Hover:
   ShowAKA: Yes

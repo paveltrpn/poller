@@ -5,6 +5,7 @@ set(CMAKE_C_COMPILER clang)
 set(CMAKE_CXX_COMPILER clang++)
 add_compile_options(-stdlib=libc++)
 add_link_options(-stdlib=libc++)
+
 set(CMAKE_BUILD_TYPE Debug)
 
 project(poller)
@@ -16,3 +17,4 @@ file(GLOB MOD_POLLER_SRC  modules/poller/*.cpp)
 add_library(poller)
 target_sources(poller PRIVATE ${MOD_POLLER_SRC})
 
+add_subdirectory(test)
