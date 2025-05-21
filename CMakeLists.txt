@@ -39,13 +39,17 @@ endif()
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
-file(GLOB MOD_POLLER_SRC  modules/poller/*.cpp)
+file(GLOB MOD_POLLER_SRC  modules/poller/*.cpp modules/poller/*.h)
 add_library(poller)
 target_sources(poller PRIVATE ${MOD_POLLER_SRC})
 
-file(GLOB MOD_IO_SRC  modules/io/*.cpp)
+file(GLOB MOD_IO_SRC  modules/io/*.cpp modules/io/*.h)
 add_library(io)
 target_sources(io PRIVATE ${MOD_IO_SRC})
+
+file(GLOB MOD_SYNC_SRC  modules/sync/*.cpp modules/sync/*.h)
+add_library(sync)
+target_sources(sync PRIVATE ${MOD_SYNC_SRC})
 
 add_subdirectory(test)
 
