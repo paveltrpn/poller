@@ -1,30 +1,35 @@
 
 #include <iostream>
+#include <print>
 
 #include "poller.h"
 #include "async.h"
 #include "request.h"
 
-poller::Task<void> requestAsync( poller::Poller& client, std::string rqst ) {
+struct S {
+    unsigned i : 2, j : 6;
+};
+
+auto requestAsync( poller::Poller& client, std::string rqst )
+    -> poller::Task<void> {
     auto resp = co_await client.requestAsyncVoid( rqst );
-    std::cout << rqst << " ready: " << resp.code << " - " << resp.data
-              << std::endl;
+    std::println( "ready {} - {}", resp.code, resp.data );
 }
 
-poller::Task<void> httpRequestAsync( poller::Poller& client,
-                                     poller::HttpRequest&& rqst ) {
+auto httpRequestAsync( poller::Poller& client, poller::HttpRequest&& rqst )
+    -> poller::Task<void> {
     auto resp = co_await client.requestAsyncVoid( std::move( rqst ) );
-    std::cout << rqst << " ready: " << resp.code << " - " << resp.data
-              << std::endl;
+    std::println( "ready: {} - {}", resp.code, resp.data );
 }
 
-[[nodiscard]] poller::Task<poller::Result> requestPromise(
-    poller::Poller& client, poller::HttpRequest&& rqst ) {
+[[nodiscard]] auto requestPromise( poller::Poller& client,
+                                   poller::HttpRequest&& rqst )
+    -> poller::Task<poller::Result> {
     auto resp = co_await client.requestAsyncPromise( std::move( rqst ) );
     co_return resp;
 }
 
-int main( int argc, char** argv ) {
+auto main( int argc, char** argv ) -> int {
     poller::Poller client;
 
     auto req =
