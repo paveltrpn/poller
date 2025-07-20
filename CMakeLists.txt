@@ -70,4 +70,4 @@ add_subdirectory(test/httpbin)
 target_link_libraries(httpbin poller curl)
 
 add_subdirectory(test/io)
-target_link_libraries(io_test io)
+target_link_libraries(io_test uv io)
