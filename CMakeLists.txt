@@ -39,13 +39,20 @@ endif()
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
+
 file(GLOB MOD_POLLER_SRC  modules/poller/*.cpp modules/poller/*.h)
 add_library(poller)
 target_sources(poller PRIVATE ${MOD_POLLER_SRC})
 
-file(GLOB MOD_IO_SRC  modules/io/*.cpp modules/io/*.h)
+# Module config
+# ================================
+file(GLOB MOD_IO_SRC modules/io/*.cpp)
 add_library(io)
-target_sources(io PRIVATE ${MOD_IO_SRC})
+target_sources(io
+  PUBLIC
+    FILE_SET CXX_MODULES FILES
+    ${MOD_IO_SRC}
+)
 
 file(GLOB MOD_SYNC_SRC  modules/sync/*.cpp modules/sync/*.h)
 add_library(sync)
@@ -61,3 +68,6 @@ target_link_libraries(coro poller curl)
 
 add_subdirectory(test/httpbin)
 target_link_libraries(httpbin poller curl)
+
+add_subdirectory(test/io)
+target_link_libraries(io_test io)
