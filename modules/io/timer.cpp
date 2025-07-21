@@ -10,6 +10,7 @@ namespace poller::io {
 
 export struct Timer final : EventScheduler {
 private:
+    uv_timer_t timer_;
 };
 
 }  // namespace poller::io
