@@ -21,6 +21,11 @@ struct EventScheduler {
         } );
     }
 
+    EventScheduler( const EventScheduler &other ) = delete;
+    EventScheduler( EventScheduler &&other ) = delete;
+    EventScheduler &operator=( const EventScheduler &other ) = delete;
+    EventScheduler &operator=( EventScheduler &&other ) = delete;
+
     virtual ~EventScheduler() {
         uv_loop_close( loop_ );
         free( loop_ );
