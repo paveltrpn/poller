@@ -44,7 +44,7 @@ file(GLOB MOD_POLLER_SRC  modules/poller/*.cpp modules/poller/*.h)
 add_library(poller)
 target_sources(poller PRIVATE ${MOD_POLLER_SRC})
 
-# Module config
+# Module io
 # ================================
 file(GLOB MOD_IO_SRC modules/io/*.cpp)
 add_library(io)
@@ -52,6 +52,16 @@ target_sources(io
   PUBLIC
     FILE_SET CXX_MODULES FILES
     ${MOD_IO_SRC}
+)
+
+# Module server
+# ================================
+file(GLOB MOD_SERVER_SRC modules/server/*.cpp)
+add_library(server)
+target_sources(server
+  PUBLIC
+    FILE_SET CXX_MODULES FILES
+    ${MOD_SERVER_SRC}
 )
 
 file(GLOB MOD_SYNC_SRC  modules/sync/*.cpp modules/sync/*.h)
@@ -71,3 +81,6 @@ target_link_libraries(httpbin poller curl)
 
 add_subdirectory(test/io)
 target_link_libraries(io_test uv io)
+
+add_subdirectory(test/server)
+target_link_libraries(server_test uv server)
