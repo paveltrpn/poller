@@ -4,6 +4,9 @@ Poller
 Dependencies
 =============
 
+Project needs:
+libcurl, libuv and nlohmannjson.
+
 Curl:
 -------------
 build deps:
