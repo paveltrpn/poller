@@ -4,8 +4,14 @@ Poller
 Dependencies
 =============
 
-Project needs:
-libcurl, libuv and nlohmannjson.
+Project depends on:
+libcurl 
+libuv 
+nlohmann-json
+
+All this libraries available in source codes and easy to build 
+and install. CMake script assumes that build to be done manually and corresponding envvars will
+be provided. See below...
 
 libcurl:
 TODO...
