@@ -7,16 +7,26 @@ Dependencies
 Project needs:
 libcurl, libuv and nlohmannjson.
 
-Curl:
--------------
-build deps:
+libcurl:
+TODO...
 $ apt install libpsl-dev
+
+libuv:
+$ git clone https://github.com/libuv/libuv
+$ cd libuv
+$ mkdir build && cd build
+$ cmake .. && cmake --install . --prefix=/{some}/{path}
+
+nlohmann-json:
+$ cs /{some}/{path}
+$ git clone https://github.com/nlohmann/json
 
 Set envvars
 ============
 
 export LIBCURL_DIR=/{some}/{path}/curl
 export LIBUV_DIR=/{some}/{path}/libuv
+export NLOHMANN_JSON_DIR/{some}/{path}/json
 
 Build
 ========
