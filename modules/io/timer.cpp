@@ -35,6 +35,7 @@ export struct Timer final : EventScheduler {
 
         r->data = t.get();
 
+        // Prepare job.
         uv_async_init( loop_, r, []( uv_async_t *handle ) {
             auto timer = static_cast<TimerHandle *>( handle->data );
 
@@ -47,6 +48,7 @@ export struct Timer final : EventScheduler {
             uv_close( reinterpret_cast<uv_handle_t *>( handle ), nullptr );
         } );
 
+        // Start job.
         uv_async_send( r );
 
         pool_.push_back( std::move( t ) );
