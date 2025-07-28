@@ -15,12 +15,12 @@ auto main( int argc, char** argv ) -> int {
     std::println("main thread sleep...");
     std::this_thread::sleep_for( 1000ms );
 
-    sched.setTimer( 100, 0, []( uv_timer_t* handle ) {
+    sched.setTimer( 500, 0, []( uv_timer_t* handle ) {
         //
         std::println( "timer fires" );
     } );
 
-    sched.setTimer( 200, 0, []( uv_timer_t* handle ) {
+    sched.setTimer( 500, 0, []( uv_timer_t* handle ) {
         //
         std::println( "timer fires again" );
     } );
