@@ -9,6 +9,14 @@ module;
 export module io:simple_loop;
 
 namespace poller::io {
+/*
+struct TimerHandle final {
+    uint64_t timeout_{};
+    uint64_t repeat_{};
+    uv_timer_t handle_{};
+    // uv_timer_cb type
+    void ( *cb_ )( uv_timer_t *handle );
+};
 
 export struct SimpleLoop final {
     SimpleLoop() {
@@ -41,20 +49,28 @@ export struct SimpleLoop final {
         uv_idle_start( &idle_, []( uv_idle_t *handle ) {} );
     }
 
-    auto setCloseTimer( long long msec ) -> void {
-        closeTimer_.data = this;
+    auto setCloseTimerAsync( long long msec ) -> void {
+        closeTimer_.handle_.data = this;
+        closeTimer_.timeout_ = msec;
+        closeTimer_.repeat_ = 0;
+        closeTimer_.cb_ = []( uv_timer_t *handle ) {
+            const auto th = static_cast<SimpleLoop *>( handle->data );
+            std::println( "close timer fires..." );
+            uv_stop( th->loop_ );
+        };
 
-        uv_timer_init( loop_, &closeTimer_ );
+        r1_.data = &closeTimer_;
 
-        uv_timer_start(
-            &closeTimer_,
-            []( uv_timer_t *handle ) {
-                const auto th = static_cast<SimpleLoop *>( handle->data );
-                std::println( "close timer fires..." );
-                uv_timer_stop( &th->closeTimer_ );
-                uv_stop( th->loop_ );
-            },
-            msec, 0 );
+        uv_async_init( loop_, &r1_, []( uv_async_t *handle ) {
+            //
+            auto timerHandle = static_cast<TimerHandle *>( handle->data );
+            uv_timer_init( handle->loop, &timerHandle->handle_ );
+            uv_timer_start( &timerHandle->handle_, timerHandle->cb_,
+                            timerHandle->timeout_, timerHandle->repeat_ );
+
+            std::println( "timer started by async..." );
+        } );
+        uv_async_send( &r1_ );
     }
 
     auto printThreadInfo() -> void {
@@ -79,8 +95,10 @@ private:
     uv_loop_t *loop_{};
 
     uv_idle_t idle_{};
-    uv_timer_t closeTimer_{};
-    uv_async_t r0_{};
-};
+    TimerHandle closeTimer_{};
 
+    uv_async_t r0_{};
+    uv_async_t r1_{};
+};
+*/
 }  // namespace poller::io

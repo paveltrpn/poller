@@ -1,0 +1,15 @@
+{
+	"editor.fontFamily": "Fira Code Medium",
+	"editor.fontSize": 11.0,
+	"editor.fontWeight": 500,
+	"editor.tabCompletion": "on",
+	"editor.renderWhitespace": "all",
+	"editor.inlayHints.enabled": "off",
+	"editor.formatOnSave": true,
+	"editor.parameterHints.enabled": false,
+	"editor.stickyScroll.enabled": false,
+	"editor.formatOnSaveMode": "file",
+	"editor.renderControlCharacters": false,
+	"editor.minimap.enabled": false,
+	"editor.minimap.renderCharacters": false
+}
