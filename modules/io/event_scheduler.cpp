@@ -14,12 +14,19 @@ export module io:event_scheduler;
 namespace poller::io {
 
 struct EventScheduler {
-    EventScheduler() {
-        loop_ = static_cast<uv_loop_t *>( malloc( sizeof( uv_loop_t ) ) );
-        uv_loop_init( loop_ );
+    EventScheduler()
+        : loop_{ static_cast<uv_loop_t *>( malloc( sizeof( uv_loop_t ) ) ) } {
+        const auto ret = uv_loop_init( loop_ );
+        std::println( "loop init with code {}", ret );
 
         thread_ = std::make_unique<std::thread>( [this]() {
-            //
+            // Main thread must explicitly call run() to start event loop.
+            std::unique_lock<std::mutex> lk{ m_ };
+            cv_.wait( lk, [this]() {
+                //
+                return run_;
+            } );
+
             uv_run( loop_, UV_RUN_DEFAULT );
         } );
     }
@@ -35,7 +42,8 @@ struct EventScheduler {
     }
 
     auto run() -> void {
-        //
+        run_ = true;
+        cv_.notify_all();
     }
 
     auto sync_wait() -> void {
@@ -76,6 +84,9 @@ protected:
 
 private:
     std::unique_ptr<std::thread> thread_;
+    std::condition_variable cv_;
+    std::mutex m_;
+    bool run_{ false };
 
     std::vector<std::shared_ptr<uv_async_t>> pendingQueue_{};
 };
