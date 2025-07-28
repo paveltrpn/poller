@@ -25,11 +25,6 @@ add_executable(io_timer
 )
 target_link_libraries(io_timer uv io)
 
-add_executable(io_test
-    io/io_test.cpp
-)
-target_link_libraries(io_test uv io)
-
 add_executable(httpbin
     httpbin/httpbin.cpp
     httpbin/httpbin.h
