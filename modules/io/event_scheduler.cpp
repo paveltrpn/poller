@@ -34,6 +34,10 @@ struct EventScheduler {
         free( loop_ );
     }
 
+    auto run() -> void {
+        //
+    }
+
     auto sync_wait() -> void {
         //
         thread_->join();
