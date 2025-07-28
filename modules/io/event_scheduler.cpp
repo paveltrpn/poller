@@ -42,7 +42,10 @@ struct EventScheduler {
     }
 
     auto run() -> void {
-        run_ = true;
+        {
+            std::lock_guard<std::mutex> _{ m_ };
+            run_ = true;
+        }
         cv_.notify_one();
     }
 
