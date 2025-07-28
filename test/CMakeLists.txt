@@ -10,15 +10,10 @@ add_executable(request
 )
 target_link_libraries(request poller)
 
-add_executable(io_reader
-    io/io_reader.cpp
+add_executable(io_file
+    io/io_file.cpp
 )
-target_link_libraries(io_reader uv io)
-
-add_executable(io_writer
-    io/io_writer.cpp
-)
-target_link_libraries(io_writer uv io)
+target_link_libraries(io_file uv io)
 
 add_executable(io_timer
     io/io_timer.cpp

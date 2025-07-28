@@ -2,12 +2,12 @@ module;
 
 #include <print>
 
-export module io:reader;
+export module io:file;
 import :event_scheduler;
 
 namespace poller::io {
 
-export struct Reader final : EventScheduler {
+export struct File final : EventScheduler {
 private:
 };
 
