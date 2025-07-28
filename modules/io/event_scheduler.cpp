@@ -43,7 +43,7 @@ struct EventScheduler {
 
     auto run() -> void {
         run_ = true;
-        cv_.notify_all();
+        cv_.notify_one();
     }
 
     auto sync_wait() -> void {
