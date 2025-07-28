@@ -49,7 +49,7 @@ protected:
         auto it = std::find_if(
             pendingQueue_.begin(), pendingQueue_.end(), []( auto &item ) {
                 return uv_is_active( reinterpret_cast<const uv_handle_t *>(
-                           &item ) ) == 0;
+                           item.get() ) ) != 0;
             } );
 
         if ( it != pendingQueue_.cend() ) {
@@ -59,8 +59,9 @@ protected:
         }
     }
 
+    // Add new async handle in queue.
     auto scheduleJob() -> uv_async_t * {
-        auto j = std::make_unique<uv_async_t>();
+        auto j = std::make_shared<uv_async_t>();
         const auto tmp = j.get();
         pendingQueue_.push_back( std::move( j ) );
         return tmp;
@@ -72,7 +73,7 @@ protected:
 private:
     std::unique_ptr<std::thread> thread_;
 
-    std::vector<std::unique_ptr<uv_async_t>> pendingQueue_{};
+    std::vector<std::shared_ptr<uv_async_t>> pendingQueue_{};
 };
 
 }  // namespace poller::io
