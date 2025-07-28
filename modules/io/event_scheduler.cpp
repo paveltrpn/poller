@@ -6,6 +6,7 @@ module;
 #include <cstdlib>
 #include <mutex>
 #include <vector>
+#include <new>
 
 #include <uv.h>
 
@@ -14,11 +15,20 @@ export module io:event_scheduler;
 namespace poller::io {
 
 struct EventScheduler {
-    EventScheduler()
-        : loop_{ static_cast<uv_loop_t *>( malloc( sizeof( uv_loop_t ) ) ) } {
+    EventScheduler() {
+        // Try to allocate main loop handle.
+        const auto tmp = malloc( sizeof( uv_loop_t ) );
+        if ( !tmp ) {
+            std::bad_alloc{};
+        }
+
+        loop_ = static_cast<uv_loop_t *>( tmp );
+
+        //
         const auto ret = uv_loop_init( loop_ );
         std::println( "loop init with code {}", ret );
 
+        // Loop thread initialization.
         thread_ = std::make_unique<std::thread>( [this]() {
             // Main thread must explicitly call run() to start event loop.
             std::unique_lock<std::mutex> lk{ m_ };
