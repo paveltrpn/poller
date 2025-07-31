@@ -63,6 +63,26 @@ target_sources(server
     ${MOD_SERVER_SRC}
 )
 
+# Module raw
+# ================================
+file(GLOB MOD_RAW_SRC modules/raw/*.cpp)
+add_library(raw)
+target_sources(raw
+  PUBLIC
+    FILE_SET CXX_MODULES FILES
+    ${MOD_RAW_SRC}
+)
+
+# Module basio
+# ================================
+file(GLOB MOD_BASIO_SRC modules/basio/*.cpp)
+add_library(basio)
+target_sources(basio
+  PUBLIC
+    FILE_SET CXX_MODULES FILES
+    ${MOD_BASIO_SRC}
+)
+
 file(GLOB MOD_SYNC_SRC  modules/sync/*.cpp modules/sync/*.h)
 add_library(sync)
 target_sources(sync PRIVATE ${MOD_SYNC_SRC})

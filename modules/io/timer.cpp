@@ -25,7 +25,7 @@ struct TimerHandle final {
 export struct Timer final : EventScheduler {
     auto setTimer( uint64_t timeout, uint64_t repeat,
                    void ( *cb )( uv_timer_t * ) ) -> void {
-        // Acqure uv_async handle in wich this job will be performed.
+        // Acquire uv_async handle in wich this job will be performed.
         auto r = scheduleJob();
 
         auto t = std::make_unique<TimerHandle>();
@@ -90,7 +90,7 @@ export struct Timer final : EventScheduler {
 private:
     // Find first active uv_timer_t handle that can be used
     // to perform operation.
-    // NOTE: just liniera search.
+    // NOTE: just linear search.
     auto findActive() -> size_t {
         const auto it =
             std::find_if( pool_.cbegin(), pool_.cend(), []( const auto &item ) {

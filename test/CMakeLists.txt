@@ -41,3 +41,8 @@ add_executable(server_test
     server/main.cpp
 )
 target_link_libraries(server_test uv server)
+
+add_executable(socket_test
+    raw/socket.cpp
+)
+target_link_libraries(socket_test raw)
