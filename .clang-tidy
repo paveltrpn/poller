@@ -10,7 +10,7 @@ Checks: >
   unused-*
   cppcoreguidelines-*
 
-  -bugprone-assignment-in-if-condition,
+# -bugprone-assignment-in-if-condition,
   -bugprone-branch-clone,
   -bugprone-easily-swappable-parameters,
   -bugprone-implicit-widening-of-multiplication-result,
@@ -28,9 +28,10 @@ Checks: >
   -misc-unused-parameters,
   -misc-non-private-member-variables-in-classes,
   -misc-include-cleaner,
-  -modernize-use-trailing-return-type,
+# -modernize-use-trailing-return-type,
   -modernize-use-constraints,
   -modernize-type-traits,
   -modernize-macro-to-enum,
   -modernize-use-designated-initializers,
-  -misc-use-anonymous-namespace,
+# -misc-use-anonymous-namespace,
+  -modernize-avoid-c-arrays,
