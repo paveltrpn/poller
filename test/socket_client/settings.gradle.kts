@@ -6,3 +6,4 @@
  */
 
 rootProject.name = "socket_client"
+include("app")
