@@ -86,7 +86,7 @@ struct list<T, THREAD_SAFE_BLOCK> final {
 
 private:
     std::list<value_type> list_;
-    std::mutex m_;
+    mutable std::mutex m_;
 };
 
 }  // namespace poller

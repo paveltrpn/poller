@@ -82,14 +82,18 @@ export struct Timer final : EventScheduler {
         pool_.append( std::move( t ) );
     };
 
-    auto info() -> void {
-        std::println( "active timers info" );
-        pool_.for_each( []( std::shared_ptr<TimerHandle> item ) {
-            //
-            std::println( "is active = {}",
-                          uv_is_active( reinterpret_cast<const uv_handle_t *>(
-                              item.get() ) ) );
+    auto handlesInfo() const -> void {
+        const auto total = handlesCount();
+        int active{ 0 };
+
+        pool_.for_each( [&active]( std::shared_ptr<TimerHandle> item ) {
+            if ( uv_is_active(
+                     reinterpret_cast<const uv_handle_t *>( item.get() ) ) ) {
+                ++active;
+            }
         } );
+
+        std::println( "timers info: {}/{} (total/active)", total, active );
     }
 
     auto handlesCount() const -> size_t {

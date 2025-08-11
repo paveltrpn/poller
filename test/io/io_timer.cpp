@@ -15,8 +15,9 @@ auto main( int argc, char** argv ) -> int {
         poller::io::Timer sched{};
         int counter{ 0 };
 
-        std::println( "main thread sleep..." );
-        std::this_thread::sleep_for( 1000ms );
+#define SLEEP_FOR 1000ms
+        std::println( "main thread sleep for: {}", SLEEP_FOR );
+        std::this_thread::sleep_for( SLEEP_FOR );
 
         sched.timeout( 500, []( uv_timer_t* handle ) {
             //
@@ -46,7 +47,7 @@ auto main( int argc, char** argv ) -> int {
             1000,
             []( uv_timer_t* handle ) {
                 auto th = static_cast<poller::io::Timer*>( handle->data );
-                th->info();
+                th->handlesInfo();
             },
             &sched );
 
