@@ -43,6 +43,16 @@ file(GLOB MOD_POLLER_SRC  modules/poller/*.cpp modules/poller/*.h)
 add_library(poller)
 target_sources(poller PRIVATE ${MOD_POLLER_SRC})
 
+# Module container
+# ================================
+file(GLOB MOD_CONTAINER_SRC modules/container/*.cpp)
+add_library(container)
+target_sources(container
+  PUBLIC
+    FILE_SET CXX_MODULES FILES
+    ${MOD_CONTAINER_SRC}
+)
+
 # Module io
 # ================================
 file(GLOB MOD_IO_SRC modules/io/*.cpp)
