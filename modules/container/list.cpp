@@ -17,7 +17,7 @@ namespace poller {
 //                                                  //
 // All specializations of this list must be used as
 // "single producer single consumer" only!!!
-export template <typename T, ConteinerTypeTag Type = THREAD_SAFE_BLOCK>
+export template <typename T, ContainerTypeTag Type = THREAD_SAFE_BLOCK>
 struct list;
 
 // Metex based scpecialization.
