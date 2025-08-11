@@ -95,19 +95,29 @@ protected:
         }
     }
 
-    // Add new async handle in queue.
-    auto scheduleJob() -> uv_async_t * {
+    // Add new uv_async_t handle in queue and submit callback to event loop within it.
+    // That async handle contain a pointer to specific data, that will be
+    // used in callback and callback to perform action on event loop thread itself.
+    auto schedule( void *h, std::invocable<uv_async_t *> auto cb ) -> void {
         auto j = std::make_shared<uv_async_t>();
-        const auto tmp = j.get();
+
+        // Store payload pointer in uv_async_t handle
+        j->data = h;
+
+        // Initilaize us_async_t handle with specific payload and callback.
+        uv_async_init( loop_, j.get(), cb );
+
+        // Submit job to event loop.
+        uv_async_send( j.get() );
+
+        // Save async handle.
         pendingQueue_.append( std::move( j ) );
-        return tmp;
     }
 
-protected:
+private:
     // Main and only uv loop handle.
     uv_loop_t *loop_{};
 
-private:
     // Loop thread.
     std::unique_ptr<std::thread> thread_;
 

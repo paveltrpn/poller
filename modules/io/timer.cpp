@@ -28,18 +28,12 @@ struct TimerHandle final {
 export struct Timer final : EventScheduler {
     auto setTimer( uint64_t timeout, uint64_t repeat,
                    void ( *cb )( uv_timer_t * ) ) -> void {
-        // Acquire uv_async handle in wich this job will be performed.
-        auto r = scheduleJob();
-
         auto t = std::make_shared<TimerHandle>();
         t->timeout_ = timeout;
         t->repeat_ = repeat;
         t->cb_ = cb;
 
-        r->data = t.get();
-
-        // Prepare job.
-        uv_async_init( loop_, r, []( uv_async_t *handle ) {
+        schedule( t.get(), []( uv_async_t *handle ) {
             auto timer = static_cast<TimerHandle *>( handle->data );
 
             uv_timer_init( handle->loop, &timer->handle_ );
@@ -51,16 +45,11 @@ export struct Timer final : EventScheduler {
             uv_close( reinterpret_cast<uv_handle_t *>( handle ), nullptr );
         } );
 
-        // Start job.
-        uv_async_send( r );
-
         pool_.append( std::move( t ) );
     };
 
     auto printInfo() -> void {
-        ia_.data = this;
-
-        uv_async_init( loop_, &ia_, []( uv_async_t *handle ) {
+        schedule( this, []( uv_async_t *handle ) {
             auto th = static_cast<Timer *>( handle->data );
 
             th->it_.data = th;
@@ -76,8 +65,6 @@ export struct Timer final : EventScheduler {
                 1000, 0 );
             uv_close( reinterpret_cast<uv_handle_t *>( handle ), nullptr );
         } );
-
-        uv_async_send( &ia_ );
     }
 
     auto info() -> void {
@@ -109,7 +96,6 @@ private:
 
 private:
     uv_timer_t it_{};
-    uv_async_t ia_{};
 
     poller::list<TimerHandle> pool_;
 };
