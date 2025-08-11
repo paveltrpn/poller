@@ -16,6 +16,10 @@ import container;
 
 namespace poller::io {
 
+// Base class that holds uv loop handle and loop thread. This
+// class manages async handles that used for "thread safe" adding
+// other usefull uv handles (such as timers, file and network handles)
+// to event loop and perform actions.
 struct EventScheduler {
     EventScheduler() {
         // Try to allocate main loop handle.
@@ -39,10 +43,12 @@ struct EventScheduler {
                 return run_;
             } );
 
+            // Start event loop.
             uv_run( loop_, UV_RUN_DEFAULT );
         } );
     }
 
+    // Not copyable not moveable "service-like" object.
     EventScheduler( const EventScheduler &other ) = delete;
     EventScheduler( EventScheduler &&other ) = delete;
     EventScheduler &operator=( const EventScheduler &other ) = delete;
@@ -50,9 +56,11 @@ struct EventScheduler {
 
     virtual ~EventScheduler() {
         uv_loop_close( loop_ );
+        // Release loop pointer.
         free( loop_ );
     }
 
+    // Manually start event loop thread.
     auto run() -> void {
         {
             std::lock_guard<std::mutex> _{ m_ };
@@ -61,6 +69,7 @@ struct EventScheduler {
         cv_.notify_one();
     }
 
+    // Wait until event loop finished.
     auto sync_wait() -> void {
         //
         thread_->join();
@@ -95,14 +104,20 @@ protected:
     }
 
 protected:
+    // Main and only uv loop handle.
     uv_loop_t *loop_{};
 
 private:
+    // Loop thread.
     std::unique_ptr<std::thread> thread_;
+
+    //
     std::condition_variable cv_;
     std::mutex m_;
     bool run_{ false };
 
+    // Async handles that used for calling callbacks
+    // on loop thread.
     poller::list<uv_async_t> pendingQueue_{};
 };
 

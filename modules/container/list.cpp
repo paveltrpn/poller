@@ -13,21 +13,28 @@ import :tag;
 
 namespace poller {
 
+// General template definition of thread safe list.
+//                                                  //
+// All specializations of this list must be used as
+// "single producer single consumer" only!!!
 export template <typename T, ConteinerTypeTag Type = THREAD_SAFE_BLOCK>
 struct list;
 
+// Metex based scpecialization.
 export template <typename T>
 struct list<T, THREAD_SAFE_BLOCK> final {
     using value_type = std::shared_ptr<T>;
 
-    auto append( value_type item ) -> void {
+    // Consume external shared_ptr to value type.
+    auto append( value_type &&item ) -> void {
         std::lock_guard _{ m_ };
-        list_.push_back( item );
+        list_.emplace_back( item );
     }
 
-    auto prepend( value_type item ) -> void {
+    // Consume external shared_ptr to value type.
+    auto prepend( value_type &&item ) -> void {
         std::lock_guard _{ m_ };
-        list_.push_front( item );
+        list_.emplace_front( item );
     }
 
     auto find_if( std::invocable<value_type> auto pred ) const
