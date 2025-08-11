@@ -6,11 +6,14 @@ module;
 #include <vector>
 #include <iterator>
 #include <functional>
+#include <memory>
 
 #include <uv.h>
 
 export module io:timer;
+
 import :event_scheduler;
+import container;
 
 namespace poller::io {
 
@@ -28,7 +31,7 @@ export struct Timer final : EventScheduler {
         // Acquire uv_async handle in wich this job will be performed.
         auto r = scheduleJob();
 
-        auto t = std::make_unique<TimerHandle>();
+        auto t = std::make_shared<TimerHandle>();
         t->timeout_ = timeout;
         t->repeat_ = repeat;
         t->cb_ = cb;
@@ -51,7 +54,7 @@ export struct Timer final : EventScheduler {
         // Start job.
         uv_async_send( r );
 
-        pool_.push_back( std::move( t ) );
+        pool_.append( std::move( t ) );
     };
 
     auto printInfo() -> void {
@@ -79,7 +82,7 @@ export struct Timer final : EventScheduler {
 
     auto info() -> void {
         std::println( "active timers info" );
-        std::for_each( pool_.cbegin(), pool_.cend(), []( const auto &item ) {
+        pool_.for_each( []( std::shared_ptr<TimerHandle> item ) {
             //
             std::println( "is active = {}",
                           uv_is_active( reinterpret_cast<const uv_handle_t *>(
@@ -92,14 +95,13 @@ private:
     // to perform operation.
     // NOTE: just linear search.
     auto findActive() -> size_t {
-        const auto it =
-            std::find_if( pool_.cbegin(), pool_.cend(), []( const auto &item ) {
-                return uv_is_active( reinterpret_cast<const uv_handle_t *>(
-                           &item ) ) != 0;
-            } );
+        auto it = pool_.find_if( []( std::shared_ptr<TimerHandle> item ) {
+            return uv_is_active( reinterpret_cast<const uv_handle_t *>(
+                       item.get() ) ) != 0;
+        } );
 
         if ( it != pool_.cend() ) {
-            return std::distance( pool_.cbegin(), it );
+            return std::distance( pool_.begin(), it );
         } else {
             return -1;
         }
@@ -109,7 +111,7 @@ private:
     uv_timer_t it_{};
     uv_async_t ia_{};
 
-    std::vector<std::unique_ptr<TimerHandle>> pool_;
+    poller::list<TimerHandle> pool_;
 };
 
 }  // namespace poller::io

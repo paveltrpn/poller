@@ -62,6 +62,7 @@ target_sources(io
     FILE_SET CXX_MODULES FILES
     ${MOD_IO_SRC}
 )
+target_link_libraries(io container)
 
 # Module server
 # ================================

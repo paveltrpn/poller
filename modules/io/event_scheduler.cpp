@@ -12,6 +12,8 @@ module;
 
 export module io:event_scheduler;
 
+import container;
+
 namespace poller::io {
 
 struct EventScheduler {
@@ -88,7 +90,7 @@ protected:
     auto scheduleJob() -> uv_async_t * {
         auto j = std::make_shared<uv_async_t>();
         const auto tmp = j.get();
-        pendingQueue_.push_back( std::move( j ) );
+        pendingQueue_.append( std::move( j ) );
         return tmp;
     }
 
@@ -101,7 +103,7 @@ private:
     std::mutex m_;
     bool run_{ false };
 
-    std::vector<std::shared_ptr<uv_async_t>> pendingQueue_{};
+    poller::list<uv_async_t> pendingQueue_{};
 };
 
 }  // namespace poller::io
