@@ -26,12 +26,19 @@ struct TimerHandle final {
 };
 
 export struct Timer final : EventScheduler {
-    auto setTimer( uint64_t timeout, uint64_t repeat,
-                   void ( *cb )( uv_timer_t * ) ) -> void {
+    // Start timer repeating with interval.
+    auto repeat( uint64_t repeat, void ( *cb )( uv_timer_t * ),
+                 void *payload = nullptr ) -> void {
+        //
         auto t = std::make_shared<TimerHandle>();
-        t->timeout_ = timeout;
+
+        //
+        t->timeout_ = 0;
         t->repeat_ = repeat;
         t->cb_ = cb;
+
+        // NOTE: can be NULL!!!
+        t->handle_.data = payload;
 
         schedule( t.get(), []( uv_async_t *handle ) {
             auto timer = static_cast<TimerHandle *>( handle->data );
@@ -48,24 +55,32 @@ export struct Timer final : EventScheduler {
         pool_.append( std::move( t ) );
     };
 
-    auto printInfo() -> void {
-        schedule( this, []( uv_async_t *handle ) {
-            auto th = static_cast<Timer *>( handle->data );
+    // Fire once by timeout.
+    auto timeout( uint64_t timeout, void ( *cb )( uv_timer_t * ),
+                  void *payload = nullptr ) -> void {
+        //
+        auto t = std::make_shared<TimerHandle>();
 
-            th->it_.data = th;
+        //
+        t->timeout_ = timeout;
+        t->repeat_ = 0;
+        t->cb_ = cb;
 
-            uv_timer_init( handle->loop, &th->it_ );
-            uv_timer_start(
-                &th->it_,
-                []( uv_timer_t *handle ) {
-                    //
-                    auto th = static_cast<Timer *>( handle->data );
-                    th->info();
-                },
-                1000, 0 );
+        //
+        t->handle_.data = payload;
+
+        schedule( t.get(), []( uv_async_t *handle ) {
+            auto timer = static_cast<TimerHandle *>( handle->data );
+
+            uv_timer_init( handle->loop, &timer->handle_ );
+            uv_timer_start( &timer->handle_, timer->cb_, timer->timeout_,
+                            timer->repeat_ );
+
             uv_close( reinterpret_cast<uv_handle_t *>( handle ), nullptr );
         } );
-    }
+
+        pool_.append( std::move( t ) );
+    };
 
     auto info() -> void {
         std::println( "active timers info" );
@@ -77,10 +92,14 @@ export struct Timer final : EventScheduler {
         } );
     }
 
+    auto handlesCount() const -> size_t {
+        //
+        return pool_.size();
+    }
+
 private:
     // Find first active uv_timer_t handle that can be used
     // to perform operation.
-    // NOTE: just linear search.
     auto findActive() -> size_t {
         auto it = pool_.find_if( []( std::shared_ptr<TimerHandle> item ) {
             return uv_is_active( reinterpret_cast<const uv_handle_t *>(
@@ -95,8 +114,7 @@ private:
     }
 
 private:
-    uv_timer_t it_{};
-
+    // Timer handles.
     poller::list<TimerHandle> pool_;
 };
 

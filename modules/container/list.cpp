@@ -79,6 +79,11 @@ struct list<T, THREAD_SAFE_BLOCK> final {
         return list_.cend();
     }
 
+    auto size() const -> size_t {
+        //
+        return list_.size();
+    }
+
 private:
     std::list<value_type> list_;
     std::mutex m_;
