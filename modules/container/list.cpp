@@ -59,13 +59,25 @@ struct list<T, THREAD_SAFE_BLOCK> final {
         std::for_each( list_.begin(), list_.end(), pred );
     }
 
-    auto begin() { return list_.begin(); }
+    auto begin() {
+        //
+        return list_.begin();
+    }
 
-    const auto cbegin() const { return list_.cbegin(); }
+    const auto cbegin() const {
+        //
+        return list_.cbegin();
+    }
 
-    auto end() { return list_.end(); }
+    auto end() {
+        //
+        return list_.end();
+    }
 
-    const auto cend() const { return list_.cend(); }
+    const auto cend() const {
+        //
+        return list_.cend();
+    }
 
 private:
     std::list<value_type> list_;

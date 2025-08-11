@@ -69,7 +69,7 @@ struct EventScheduler {
         cv_.notify_one();
     }
 
-    // Wait until event loop finished.
+    // Lock caller thread until event loop finished.
     auto sync_wait() -> void {
         //
         thread_->join();
@@ -99,18 +99,19 @@ protected:
     // That async handle contain a pointer to specific data, that will be
     // used in callback and callback to perform action on event loop thread itself.
     auto schedule( void *h, std::invocable<uv_async_t *> auto cb ) -> void {
+        // Allocate uv_async_t handle
         auto j = std::make_shared<uv_async_t>();
 
-        // Store payload pointer in uv_async_t handle
+        // Store payload pointer in async handle
         j->data = h;
 
-        // Initilaize us_async_t handle with specific payload and callback.
+        // Initilaize async handle with specific payload and callback.
         uv_async_init( loop_, j.get(), cb );
 
         // Submit job to event loop.
         uv_async_send( j.get() );
 
-        // Save async handle.
+        // Store handle.
         pendingQueue_.append( std::move( j ) );
     }
 
