@@ -40,13 +40,13 @@ auto main( int argc, char** argv ) -> int {
 
     // std::println( "request postman-echo.com" );
 
-    std::vector<poller::Task<poller::Result>> resps;
+    // std::vector<poller::Task<poller::Result>> resps;
 
     for ( int i = 0; i < 10; ++i ) {
         auto resp = requestPromise(
             client, { "https://postman-echo.com/get", "curl coro/0.2" } );
 
-        resps.emplace_back( std::move( resp ) );
+        // resps.emplace_back( std::move( resp ) );
         std::print( "resp {} performed\n", i );
     }
 
