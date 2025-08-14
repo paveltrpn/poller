@@ -76,7 +76,12 @@ auto main( int argc, char** argv ) -> int {
 
     client.run();
 
-    // std::this_thread::sleep_for( 5000ms );
+    // If client.run() not blocks then
+    // wait some time until pending requests done.
+    if ( KEEP_ALIVE ) {
+        std::println( " === wait for responses..." );
+        std::this_thread::sleep_for( 5000ms );
+    }
 
     return 0;
 }

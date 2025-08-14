@@ -50,12 +50,14 @@ export struct Poller {
 public:
     Poller( bool keepAlive )
         : keepAlive_{ keepAlive } {
-        CURLcode res{};
-        res = curl_global_init( CURL_GLOBAL_DEFAULT );
-        if ( res != CURLE_OK ) {
-            std::println( "curl_global_init failed, code {}\n",
-                          curl_easy_strerror( res ) );
-            throw std::runtime_error( "curl_global_init failed" );
+        // Curl global init.
+        {
+            const auto res = curl_global_init( CURL_GLOBAL_DEFAULT );
+            if ( res != CURLE_OK ) {
+                std::println( "curl_global_init failed, code {}\n",
+                              curl_easy_strerror( res ) );
+                throw std::runtime_error( "curl_global_init failed" );
+            }
         }
 
         multiHandle_ = curl_multi_init();
