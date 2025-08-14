@@ -28,6 +28,15 @@ auto httpRequestAsync( poller::Poller& client, poller::HttpRequest&& rqst )
     co_return resp;
 }
 
+auto requestAndStop( poller::Poller& client, std::string rqst )
+    -> poller::Task<void> {
+    auto resp = co_await client.requestAsyncVoid( std::move( rqst ) );
+
+    std::println( "got responce and shutdown" );
+
+    client.stop();
+}
+
 auto main( int argc, char** argv ) -> int {
     poller::Poller client;
 
@@ -41,18 +50,18 @@ auto main( int argc, char** argv ) -> int {
 
     // std::vector<poller::Task<poller::Result>> resps;
 
-    for ( int i = 0; i < 10; ++i ) {
-        auto resp = requestPromise(
-            client, { "https://postman-echo.com/get", "curl coro/0.2" } );
+    //for ( int i = 0; i < 10; ++i ) {
+    //    auto resp = requestPromise(
+    //        client, { "https://postman-echo.com/get", "curl coro/0.2" } );
 
-        // resps.emplace_back( std::move( resp ) );
-        std::print( "resp {} performed\n", i );
-    }
+    //    // resps.emplace_back( std::move( resp ) );
+    //    std::print( "resp {} performed\n", i );
+    //}
 
-    for ( int i = 0; i < 10; ++i ) {
-        //const auto [code, data] = resps[i].get();
-        //std::print( "resp {}\ncode: {}\nbody: {}\n", i, code, data );
-    }
+    //for ( int i = 0; i < 10; ++i ) {
+    //    //const auto [code, data] = resps[i].get();
+    //    //std::print( "resp {}\ncode: {}\nbody: {}\n", i, code, data );
+    //}
 
     std::println( "request postman-echo.com" );
     requestAsync( client, "https://postman-echo.com/get" );
@@ -65,7 +74,10 @@ auto main( int argc, char** argv ) -> int {
 
     requestAsync( client, "https://api.coindesk.com/v1/bpi/currentprice.json" );
 
-    std::cin.get();
+    // requestAndStop( client, "https://postman-echo.com/get" );
+
+    client.run(true);
+    client.sync_wait();
 
     return 0;
 }

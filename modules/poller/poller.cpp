@@ -2,6 +2,8 @@
 module;
 
 #include <atomic>
+#include <mutex>
+#include <condition_variable>
 
 #include <string>
 #include <thread>
@@ -42,9 +44,6 @@ namespace poller {
     return nmemb;
 }
 
-template <typename T>
-struct Task;
-
 export template <typename T, typename U>
 struct RequestAwaitable;
 
@@ -65,14 +64,99 @@ public:
             throw std::runtime_error( "curl_multi_init failed" );
         }
 
-        worker_ = std::make_unique<std::thread>( &Poller::run, this );
-        worker_->detach();
+        worker_ = std::make_unique<std::thread>( [this]() {
+            // Main thread must explicitly call run() to start event loop.
+            std::unique_lock<std::mutex> lk{ m_ };
+            cv_.wait( lk, [this]() {
+                //
+                return run_;
+            } );
+
+            int msgs_left{};
+            int still_running{};
+
+            do {
+                // curl perform
+                {
+                    const auto res =
+                        curl_multi_perform( multiHandle_, &still_running );
+
+                    std::print( "=== sr {}", still_running );
+                    if ( res != CURLM_OK ) {
+                        std::println( "curl_multi_perform failed, code {}",
+                                      curl_multi_strerror( res ) );
+                        break;
+                    }
+                }
+
+                // curl poll
+                {
+                    const auto res = curl_multi_poll( multiHandle_, nullptr, 0,
+                                                      1000, nullptr );
+
+                    if ( res != CURLM_OK ) {
+                        std::println( "curl_multi_poll failed, code {}",
+                                      curl_multi_strerror( res ) );
+                        break;
+                    }
+                }
+
+                CURLMsg* msg{};
+                do {
+                    msg = curl_multi_info_read( multiHandle_, &msgs_left );
+                    std::println( " === ml {}", msgs_left );
+                    if ( msg && ( msg->msg == CURLMSG_DONE ) ) {
+                        CURL* handle = msg->easy_handle;
+                        CURLcode res{};
+
+                        int code{};
+                        res = curl_easy_getinfo( handle, CURLINFO_RESPONSE_CODE,
+                                                 &code );
+                        if ( res != CURLE_OK ) {
+                            std::println( "curl_easy_getinfo failed, code {}\n",
+                                          curl_easy_strerror( res ) );
+                        }
+
+                        Request* requestPtr{};
+                        res = curl_easy_getinfo( handle, CURLINFO_PRIVATE,
+                                                 &requestPtr );
+
+                        if ( res != CURLE_OK ) {
+                            std::println( "curl_easy_getinfo failed, code {}\n",
+                                          curl_easy_strerror( res ) );
+                        }
+
+                        requestPtr->callback(
+                            { code, std::move( requestPtr->buffer ) } );
+                        curl_multi_remove_handle( multiHandle_, handle );
+                        curl_easy_cleanup( handle );
+                        delete requestPtr;
+                    }
+                } while ( msg );
+            } while ( !break_ || still_running );
+        } );
     }
 
     ~Poller() {
-        stop();
         curl_multi_cleanup( multiHandle_ );
         curl_global_cleanup();
+    }
+
+    // Manually start curl multi handle loop thread.
+    auto run( bool keepAlive = false ) -> void {
+        break_ = !keepAlive;
+
+        {
+            std::lock_guard<std::mutex> _{ m_ };
+            run_ = true;
+        }
+        cv_.notify_one();
+    }
+
+    // Lock caller thread until curl multi handle loop finished.
+    auto sync_wait() -> void {
+        //
+        worker_->join();
     }
 
     Poller( const Poller& other ) = delete;
@@ -143,67 +227,10 @@ public:
         HttpRequest&& request );
 
 private:
-    auto run() -> void {
-        int msgs_left;
-        int still_running = 1;
-
-        while ( !break_ ) {
-            CURLMcode res{};
-
-            res = curl_multi_perform( multiHandle_, &still_running );
-
-            if ( res != CURLM_OK ) {
-                std::println( "curl_multi_perform failed, code {}",
-                              curl_multi_strerror( res ) );
-                break;
-            }
-
-            res = curl_multi_poll( multiHandle_, nullptr, 0, 1000, nullptr );
-
-            if ( res != CURLM_OK ) {
-                std::println( "curl_multi_poll failed, code {}",
-                              curl_multi_strerror( res ) );
-                break;
-            }
-
-            CURLMsg* msg;
-            do {
-                msg = curl_multi_info_read( multiHandle_, &msgs_left );
-                if ( msg && ( msg->msg == CURLMSG_DONE ) ) {
-                    CURL* handle = msg->easy_handle;
-                    CURLcode res{};
-
-                    int code{};
-                    res = curl_easy_getinfo( handle, CURLINFO_RESPONSE_CODE,
-                                             &code );
-                    if ( res != CURLE_OK ) {
-                        std::println( "curl_easy_getinfo failed, code {}\n",
-                                      curl_easy_strerror( res ) );
-                    }
-
-                    Request* requestPtr{};
-                    res = curl_easy_getinfo( handle, CURLINFO_PRIVATE,
-                                             &requestPtr );
-
-                    if ( res != CURLE_OK ) {
-                        std::println( "curl_easy_getinfo failed, code {}\n",
-                                      curl_easy_strerror( res ) );
-                    }
-
-                    requestPtr->callback(
-                        { code, std::move( requestPtr->buffer ) } );
-                    curl_multi_remove_handle( multiHandle_, handle );
-                    curl_easy_cleanup( handle );
-                    delete requestPtr;
-                }
-            } while ( !break_ && msg );
-        }
-
-        std::println( "curl loop stopped!" );
-    }
-
-private:
     std::unique_ptr<std::thread> worker_;
+    std::mutex m_;
+    std::condition_variable cv_;
+    bool run_;
 
     CURLM* multiHandle_;
     std::atomic_bool break_{ false };
