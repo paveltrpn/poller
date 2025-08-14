@@ -3,42 +3,46 @@ Poller
 
 Dependencies
 =============
-
 Project depends on:
 libcurl 
 libuv 
 nlohmann-json
 
-All this libraries available in source codes and easy to build 
-and install. CMake script assumes that build to be done manually and corresponding envvars will
-be provided. See below...
+All this libraries available in source codes and easy to build and install.
+Build libaries from sources and keep sources aside useful for debugging, exploring definitions
+of API parts and such thing so CMake script assumes that build to be done manually
+and corresponding envvars will be provided. See below...
 
 libcurl:
-TODO...
 $ apt install libpsl-dev
+$ git clone https://github.com/curl/curl
+$ mkdir build && cd build
+$ cmake .. 
+# cmake --build . --parallel {N}
+$ cmake --install . --prefix=/{some}/{path}
 
 libuv:
 $ git clone https://github.com/libuv/libuv
 $ cd libuv
 $ mkdir build && cd build
-$ cmake .. && cmake --install . --prefix=/{some}/{path}
+$ cmake .. 
+# cmake --build . --parallel {N}
+$ cmake --install . --prefix=/{some}/{path}
 
 nlohmann-json:
-$ cs /{some}/{path}
+$ cd {some}/{path}
 $ git clone https://github.com/nlohmann/json
 
 Set envvars
 ============
-
-export LIBCURL_DIR=/{some}/{path}/curl
-export LIBUV_DIR=/{some}/{path}/libuv
-export NLOHMANN_JSON_DIR/{some}/{path}/json
+export LIBCURL_DIR={some}/{path}/curl
+export LIBUV_DIR={some}/{path}/libuv
+export NLOHMANN_JSON_DIR={some}/{path}/json
 
 Build
 ========
-
 Compiler with C++26 standart support rquired. By default compiler set to clang and libc++ standart
-library (because of better modern standart support). Build type set to "Debug" by default (-DCMAKE_BUILD_TYPE to redefine).
+library (because of better modern C++ standart support). Build type set to "Debug" by default (-DCMAKE_BUILD_TYPE to redefine).
 
 $ mkdir build
 $ cd build
