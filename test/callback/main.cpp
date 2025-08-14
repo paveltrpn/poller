@@ -4,7 +4,7 @@
 import poller;
 
 int main( int argc, char** argv ) {
-    poller::Poller client;
+    poller::Poller client{ false };
 
     std::println( "request postman-echo.com" );
     client.performRequest(
