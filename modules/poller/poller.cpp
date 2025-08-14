@@ -173,12 +173,13 @@ public:
     Poller& operator=( const Poller& other ) = delete;
     Poller& operator=( Poller&& other ) = delete;
 
-    void stop() {
+    auto stop() -> void {
         break_ = true;
         curl_multi_wakeup( multiHandle_ );
     }
 
-    void performRequest( const HttpRequest& request, CallbackFn cb ) = delete;
+    auto performRequest( const HttpRequest& request, CallbackFn cb )
+        -> void = delete;
 
     RequestAwaitable<HttpRequest, Task<void>> requestAsync(
         const HttpRequest& request ) = delete;
