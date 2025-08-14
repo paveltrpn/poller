@@ -22,13 +22,13 @@ struct TimerHandle final {
     uint64_t timeout_{};
     uint64_t repeat_{};
     // uv_timer_cb type
-    void ( *cb_ )( uv_timer_t *handle );
+    void ( *cb_ )( uv_timer_t* handle );
 };
 
 export struct Timer final : EventScheduler {
     // Start timer repeating with interval.
-    auto repeat( uint64_t repeat, void ( *cb )( uv_timer_t * ),
-                 void *payload = nullptr ) -> void {
+    auto repeat( uint64_t repeat, void ( *cb )( uv_timer_t* ),
+                 void* payload = nullptr ) -> void {
         //
         auto t = std::make_shared<TimerHandle>();
 
@@ -40,8 +40,8 @@ export struct Timer final : EventScheduler {
         // NOTE: can be NULL!!!
         t->handle_.data = payload;
 
-        schedule( t.get(), []( uv_async_t *handle ) {
-            auto timer = static_cast<TimerHandle *>( handle->data );
+        schedule( t.get(), []( uv_async_t* handle ) {
+            auto timer = static_cast<TimerHandle*>( handle->data );
 
             uv_timer_init( handle->loop, &timer->handle_ );
             uv_timer_start( &timer->handle_, timer->cb_, timer->timeout_,
@@ -49,15 +49,15 @@ export struct Timer final : EventScheduler {
 
             // Manually close active uv_async_t handle.
             // It exclude this handle from event loop queue.
-            uv_close( reinterpret_cast<uv_handle_t *>( handle ), nullptr );
+            uv_close( reinterpret_cast<uv_handle_t*>( handle ), nullptr );
         } );
 
         pool_.append( std::move( t ) );
     };
 
     // Fire once by timeout.
-    auto timeout( uint64_t timeout, void ( *cb )( uv_timer_t * ),
-                  void *payload = nullptr ) -> void {
+    auto timeout( uint64_t timeout, void ( *cb )( uv_timer_t* ),
+                  void* payload = nullptr ) -> void {
         //
         auto t = std::make_shared<TimerHandle>();
 
@@ -69,14 +69,14 @@ export struct Timer final : EventScheduler {
         //
         t->handle_.data = payload;
 
-        schedule( t.get(), []( uv_async_t *handle ) {
-            auto timer = static_cast<TimerHandle *>( handle->data );
+        schedule( t.get(), []( uv_async_t* handle ) {
+            auto timer = static_cast<TimerHandle*>( handle->data );
 
             uv_timer_init( handle->loop, &timer->handle_ );
             uv_timer_start( &timer->handle_, timer->cb_, timer->timeout_,
                             timer->repeat_ );
 
-            uv_close( reinterpret_cast<uv_handle_t *>( handle ), nullptr );
+            uv_close( reinterpret_cast<uv_handle_t*>( handle ), nullptr );
         } );
 
         pool_.append( std::move( t ) );
@@ -88,7 +88,7 @@ export struct Timer final : EventScheduler {
 
         pool_.for_each( [&active]( std::shared_ptr<TimerHandle> item ) {
             if ( uv_is_active(
-                     reinterpret_cast<const uv_handle_t *>( item.get() ) ) ) {
+                     reinterpret_cast<const uv_handle_t*>( item.get() ) ) ) {
                 ++active;
             }
         } );
@@ -106,7 +106,7 @@ private:
     // to perform operation.
     auto findActive() -> size_t {
         auto it = pool_.find_if( []( std::shared_ptr<TimerHandle> item ) {
-            return uv_is_active( reinterpret_cast<const uv_handle_t *>(
+            return uv_is_active( reinterpret_cast<const uv_handle_t*>(
                        item.get() ) ) != 0;
         } );
 

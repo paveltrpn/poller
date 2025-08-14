@@ -1,7 +1,7 @@
 
 #include <iostream>
 
-#include "poller.h"
+import poller;
 
 int main( int argc, char** argv ) {
     poller::Poller client;

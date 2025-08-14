@@ -1,19 +1,34 @@
 
-#pragma once
+module;
 
 #include <coroutine>
 #include <exception>
+#include <functional>
 #include <mutex>
 #include <print>
 
-#include "poller.h"
+export module poller:async;
+
+import :request;
 
 namespace poller {
 
-template <typename T>
+export struct Result {
+    int code;
+    std::string data;
+};
+
+export using CallbackFn = std::function<void( Result result )>;
+
+export struct Request {
+    CallbackFn callback;
+    std::string buffer;
+};
+
+export template <typename T>
 struct Task;
 
-template <>
+export template <>
 struct Task<void> {
     struct promise_type;
     using handle_type = std::coroutine_handle<promise_type>;
@@ -40,7 +55,7 @@ static std::condition_variable cv_;
 static std::mutex mtx_;
 }  // namespace __detail__
 
-template <>
+export template <>
 struct Task<Result> {
     struct promise_type;
     using handle_type = std::coroutine_handle<promise_type>;
@@ -112,32 +127,6 @@ struct Task<Result> {
 
 private:
     handle_type handle_{ nullptr };
-};
-
-template <typename T, typename U>
-struct RequestAwaitable final {
-    RequestAwaitable( Poller& client, T request )
-        : client_( client )
-        , request_( std::move( request ) ){};
-
-    // HTTP request always NOT ready immedieateley!
-    bool await_ready() const noexcept { return false; }
-
-    // can be void, bool, coroutine_handle<>
-    auto await_suspend(
-        std::coroutine_handle<typename U::promise_type> handle ) noexcept {
-        client_.performRequest( std::move( request_ ),
-                                [handle, this]( Result res ) {
-                                    result_ = std::move( res );
-                                    handle.resume();
-                                } );
-    }
-
-    Result await_resume() const noexcept { return std::move( result_ ); }
-
-    Poller& client_;
-    T request_;
-    Result result_;
 };
 
 }  // namespace poller

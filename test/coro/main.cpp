@@ -1,10 +1,9 @@
 
 #include <iostream>
 #include <print>
+#include <coroutine>
 
-#include "poller.h"
-#include "async.h"
-#include "request.h"
+import poller;
 
 struct S {
     unsigned i : 2, j : 6;

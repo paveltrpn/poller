@@ -39,9 +39,16 @@ endif()
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
-file(GLOB MOD_POLLER_SRC  modules/poller/*.cpp modules/poller/*.h)
+# Module poller
+# ================================
+file(GLOB MOD_POLLER_SRC  modules/poller/*.cpp )
 add_library(poller)
-target_sources(poller PRIVATE ${MOD_POLLER_SRC})
+target_sources(poller 
+  PUBLIC
+    FILE_SET CXX_MODULES FILES
+    ${MOD_POLLER_SRC}
+)
+
 
 # Module container
 # ================================

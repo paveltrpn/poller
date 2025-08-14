@@ -28,7 +28,7 @@ struct EventScheduler {
             std::bad_alloc{};
         }
 
-        loop_ = static_cast<uv_loop_t *>( tmp );
+        loop_ = static_cast<uv_loop_t*>( tmp );
 
         //
         const auto ret = uv_loop_init( loop_ );
@@ -49,10 +49,10 @@ struct EventScheduler {
     }
 
     // Not copyable not moveable "service-like" object.
-    EventScheduler( const EventScheduler &other ) = delete;
-    EventScheduler( EventScheduler &&other ) = delete;
-    EventScheduler &operator=( const EventScheduler &other ) = delete;
-    EventScheduler &operator=( EventScheduler &&other ) = delete;
+    EventScheduler( const EventScheduler& other ) = delete;
+    EventScheduler( EventScheduler&& other ) = delete;
+    EventScheduler& operator=( const EventScheduler& other ) = delete;
+    EventScheduler& operator=( EventScheduler&& other ) = delete;
 
     virtual ~EventScheduler() {
         uv_loop_close( loop_ );
@@ -83,8 +83,8 @@ protected:
 
     auto findActiveJob() -> size_t {
         auto it = std::find_if(
-            pendingQueue_.begin(), pendingQueue_.end(), []( auto &item ) {
-                return uv_is_active( reinterpret_cast<const uv_handle_t *>(
+            pendingQueue_.begin(), pendingQueue_.end(), []( auto& item ) {
+                return uv_is_active( reinterpret_cast<const uv_handle_t*>(
                            item.get() ) ) != 0;
             } );
 
@@ -98,7 +98,7 @@ protected:
     // Add new uv_async_t handle in queue and submit callback to event loop within it.
     // That async handle contain a pointer to specific data, that will be
     // used in callback and callback to perform action on event loop thread itself.
-    auto schedule( void *payload, std::invocable<uv_async_t *> auto cb )
+    auto schedule( void* payload, std::invocable<uv_async_t*> auto cb )
         -> void {
         // Allocate uv_async_t handle
         auto j = std::make_shared<uv_async_t>();
@@ -118,7 +118,7 @@ protected:
 
 private:
     // Main and only uv loop handle.
-    uv_loop_t *loop_{};
+    uv_loop_t* loop_{};
 
     // Loop thread.
     std::unique_ptr<std::thread> thread_;
