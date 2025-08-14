@@ -81,7 +81,6 @@ public:
                     const auto res =
                         curl_multi_perform( multiHandle_, &still_running );
 
-                    std::print( "=== sr {}", still_running );
                     if ( res != CURLM_OK ) {
                         std::println( "curl_multi_perform failed, code {}",
                                       curl_multi_strerror( res ) );
@@ -104,32 +103,42 @@ public:
                 CURLMsg* msg{};
                 do {
                     msg = curl_multi_info_read( multiHandle_, &msgs_left );
-                    std::println( " === ml {}", msgs_left );
                     if ( msg && ( msg->msg == CURLMSG_DONE ) ) {
                         CURL* handle = msg->easy_handle;
-                        CURLcode res{};
+
+                        // if remove this everything broke!!!
+                        CURLcode foobar{};
+                        //
 
                         int code{};
-                        res = curl_easy_getinfo( handle, CURLINFO_RESPONSE_CODE,
-                                                 &code );
-                        if ( res != CURLE_OK ) {
-                            std::println( "curl_easy_getinfo failed, code {}\n",
-                                          curl_easy_strerror( res ) );
+                        {
+                            const auto res = curl_easy_getinfo(
+                                handle, CURLINFO_RESPONSE_CODE, &code );
+                            if ( res != CURLE_OK ) {
+                                std::println(
+                                    "curl_easy_getinfo failed, code {}\n",
+                                    curl_easy_strerror( res ) );
+                            }
                         }
 
                         Request* requestPtr{};
-                        res = curl_easy_getinfo( handle, CURLINFO_PRIVATE,
-                                                 &requestPtr );
+                        {
+                            const auto res = curl_easy_getinfo(
+                                handle, CURLINFO_PRIVATE, &requestPtr );
 
-                        if ( res != CURLE_OK ) {
-                            std::println( "curl_easy_getinfo failed, code {}\n",
-                                          curl_easy_strerror( res ) );
+                            if ( res != CURLE_OK ) {
+                                std::println(
+                                    "curl_easy_getinfo failed, code {}\n",
+                                    curl_easy_strerror( res ) );
+                            }
                         }
 
                         requestPtr->callback(
                             { code, std::move( requestPtr->buffer ) } );
+
                         curl_multi_remove_handle( multiHandle_, handle );
                         curl_easy_cleanup( handle );
+
                         delete requestPtr;
                     }
                 } while ( msg );
@@ -227,13 +236,19 @@ public:
         HttpRequest&& request );
 
 private:
+    // curl multi worker thread.
     std::unique_ptr<std::thread> worker_;
+
+    // Initial startup holders.
     std::mutex m_;
     std::condition_variable cv_;
     bool run_;
 
+    // Main curl handle
     CURLM* multiHandle_;
-    std::atomic_bool break_{ false };
+
+    // Keep curl loop alive after all messages polliong done.
+    std::atomic<bool> break_{ false };
 };
 
 export template <typename T, typename U>

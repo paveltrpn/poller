@@ -41,7 +41,7 @@ auto main( int argc, char** argv ) -> int {
     poller::Poller client;
 
     auto req =
-        poller::HttpRequest{ "https://postman-echo.com/get", "curl coro/0.2" };
+        poller::HttpRequest{ "https://postman-echo.com/get", "poller/0.2" };
 
     httpRequestAsync( client, std::move( req ) );
     httpRequestAsync( client, std::move( req ) );
@@ -76,7 +76,7 @@ auto main( int argc, char** argv ) -> int {
 
     // requestAndStop( client, "https://postman-echo.com/get" );
 
-    client.run(true);
+    client.run();
     client.sync_wait();
 
     return 0;
