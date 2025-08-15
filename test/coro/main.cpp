@@ -32,7 +32,7 @@ auto httpRequestAsync( poller::HttpRequest&& rqst ) -> poller::Task<void> {
 auto requestAndStop( std::string rqst ) -> poller::Task<void> {
     auto resp = co_await client.requestAsyncVoid( std::move( rqst ) );
 
-    std::println( "got responce and shutdown" );
+    std::println( "got response and shutdown" );
 
     client.stop();
 }
@@ -80,7 +80,7 @@ auto main( int argc, char** argv ) -> int {
     // wait some time until pending requests done.
     if ( KEEP_ALIVE ) {
         std::println( " === wait for responses..." );
-        std::this_thread::sleep_for( 5000ms );
+        std::this_thread::sleep_for( 500ms );
     }
 
     return 0;

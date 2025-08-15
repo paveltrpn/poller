@@ -68,12 +68,17 @@ public:
 
         worker_ = std::make_unique<std::jthread>(
             [this]( std::stop_token st ) {
-                // Main thread must explicitly call run() to start event loop.
-                std::unique_lock<std::mutex> lk{ m_ };
-                cv_.wait( lk, [this]() {
-                    //
-                    return run_;
-                } );
+                // If keepAlive == true then we go directly in curl poll loop and
+                // spin in it until Poller object destructor or explicit stop() call.
+                // Else main thread must explicitly call run() to start curl multi loop and
+                // blocks in it untill all penditg requests complete.
+                if ( !keepAlive_ ) {
+                    std::unique_lock<std::mutex> lk{ m_ };
+                    cv_.wait( lk, [this]() {
+                        //
+                        return run_;
+                    } );
+                }
 
                 int msgs_left{};
                 int still_running{};
@@ -154,7 +159,7 @@ public:
             },
             ss_.get_token() );
 
-        // keepAlive_ means curl thread will be detached.
+        // keepAlive_ means curl thread needs be detached.
         if ( keepAlive_ ) {
             worker_->detach();
         }
@@ -173,31 +178,34 @@ public:
         curl_global_cleanup();
     }
 
-    // Manually start curl multi handle loop thread.
-    // //
+    // Manually start curl multi handle loop thread and block,
+    // or noop on keeped alive detached thread.
+    //
     // If poller initialized with keepAlive == false then
-    // caller thread will be blocked on this call untill
+    // caller thread will be blocked on this call until
     // all pending requests will be performed. Else means
     // curl thread already detached and will be stopped
     // in destructor of this object or by explicit call stop().
     auto run() -> void {
-        // Start curl thread
-        {
-            std::lock_guard<std::mutex> _{ m_ };
-            run_ = true;
-        }
-        cv_.notify_one();
-
-        // Lock caller thread until curl multi handle loop finished,
-        // or no op on detached thread.
         if ( !keepAlive_ ) {
+            // Start curl thread
+            {
+                std::lock_guard<std::mutex> _{ m_ };
+                run_ = true;
+            }
+            cv_.notify_one();
+
+            // Lock caller thread until curl multi handle loop finished,
+            // or no op on detached thread.
             worker_->join();
         }
     }
 
     auto stop() -> void {
-        ss_.request_stop();
+        // Wekaup multi poll when he sleeps on timeout.
         curl_multi_wakeup( multiHandle_ );
+        // Stop curl loop thread.
+        ss_.request_stop();
     }
 
     Poller( const Poller& other ) = delete;
