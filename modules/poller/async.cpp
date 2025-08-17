@@ -76,16 +76,14 @@ struct Task<Result> {
     using handle_type = std::coroutine_handle<promise_type>;
 
     struct promise_type {
-        std::exception_ptr exception_{ nullptr };
-        Result payload_;
-
+    public:
         Task get_return_object() {
             //
             return handle_type::from_promise( *this );
         };
 
         auto return_value( Result value ) -> void {
-            // /
+            //
             payload_ = value;
         }
 
@@ -103,6 +101,10 @@ struct Task<Result> {
             //
             exception_ = std::current_exception();
         }
+
+    public:
+        std::exception_ptr exception_{ nullptr };
+        Result payload_;
     };
 
     Task( handle_type h )
