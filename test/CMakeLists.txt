@@ -15,10 +15,10 @@ add_executable(io_timer
 )
 target_link_libraries(io_timer uv io)
 
-add_executable(coro
-    coro/main.cpp
+add_executable(poller_http
+    poller/http.cpp
 )
-target_link_libraries(coro poller curl)
+target_link_libraries(poller_http poller curl)
 
 add_executable(socket_test
     raw/socket.cpp
