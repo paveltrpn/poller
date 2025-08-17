@@ -34,16 +34,31 @@ struct Task<void> {
     using handle_type = std::coroutine_handle<promise_type>;
 
     struct promise_type {
+    public:
+        Task get_return_object() {
+            //
+            return {};
+        };
+
+        auto initial_suspend() noexcept {
+            //
+            return std::suspend_never{};
+        }
+
+        auto final_suspend() noexcept {
+            //
+            return std::suspend_never{};
+        }
+
+        auto return_void() -> void { /* noop */ }
+
+        auto unhandled_exception() -> void {
+            //
+            exception_ = std::current_exception();
+        }
+
+    public:
         std::exception_ptr exception_{ nullptr };
-
-        Task get_return_object() { return {}; };
-
-        auto initial_suspend() noexcept { return std::suspend_never{}; }
-        auto final_suspend() noexcept { return std::suspend_never{}; }
-
-        void return_void() {}
-
-        void unhandled_exception() { exception_ = std::current_exception(); }
     };
 };
 
@@ -64,21 +79,34 @@ struct Task<Result> {
         std::exception_ptr exception_{ nullptr };
         Result payload_;
 
-        Task get_return_object() { return handle_type::from_promise( *this ); };
+        Task get_return_object() {
+            //
+            return handle_type::from_promise( *this );
+        };
 
-        void return_value( Result value ) { payload_ = value; }
-
-        auto initial_suspend() noexcept { return std::suspend_never{}; }
-        auto final_suspend() noexcept {
-            __detail__::cv_.notify_all();
-            return std::suspend_always{};
+        auto return_value( Result value ) -> void {
+            // /
+            payload_ = value;
         }
 
-        void unhandled_exception() { exception_ = std::current_exception(); }
+        auto initial_suspend() noexcept -> std::suspend_never {
+            //
+            return {};
+        }
+
+        auto final_suspend() noexcept -> std::suspend_always {
+            __detail__::cv_.notify_all();
+            return {};
+        }
+
+        auto unhandled_exception() -> void {
+            //
+            exception_ = std::current_exception();
+        }
     };
 
     Task( handle_type h )
-        : handle_( h ) {}
+        : handle_( h ) { /* noop */ }
 
     Task( Task&& t ) noexcept
         : handle_( t.handle_ ) {
@@ -101,9 +129,12 @@ struct Task<Result> {
     Task( const Task& ) = delete;
     Task& operator=( const Task& ) = delete;
 
-    ~Task() { detach(); }
+    ~Task() {
+        //
+        detach();
+    }
 
-    void detach() noexcept {
+    auto detach() noexcept -> void {
         if ( empty() ) {
             return;
         }
@@ -114,8 +145,15 @@ struct Task<Result> {
         }
     }
 
-    constexpr bool empty() const noexcept { return handle_ == nullptr; }
-    constexpr explicit operator bool() const noexcept { return !empty(); }
+    constexpr auto empty() const noexcept -> bool {
+        //
+        return handle_ == nullptr;
+    }
+
+    constexpr explicit operator bool() const noexcept {
+        //
+        return !empty();
+    }
 
     Result get() {
         // block caller thread until coroutine reach final_suspend()

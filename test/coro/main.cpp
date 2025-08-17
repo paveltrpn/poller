@@ -5,6 +5,8 @@
 #include <thread>
 #include <chrono>
 
+#include <nlohmann/json.hpp>
+
 import poller;
 
 using namespace std::chrono_literals;
