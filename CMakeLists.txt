@@ -91,4 +91,14 @@ target_sources(basio
     ${MOD_BASIO_SRC}
 )
 
+# Module pingpong_coro
+# ================================
+file(GLOB MOD_PINGPONG_SRC modules/pingpong/*.cpp)
+add_library(pingpong_coro)
+target_sources(pingpong_coro
+  PUBLIC
+    FILE_SET CXX_MODULES FILES
+    ${MOD_PINGPONG_SRC}
+)
+
 add_subdirectory(test)

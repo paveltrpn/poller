@@ -24,3 +24,8 @@ add_executable(socket_test
     raw/socket.cpp
 )
 target_link_libraries(socket_test raw)
+
+add_executable(pingpong
+    pingpong/main.cpp
+)
+target_link_libraries(pingpong pingpong_coro)
