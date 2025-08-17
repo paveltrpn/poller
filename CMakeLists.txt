@@ -71,16 +71,6 @@ target_sources(io
 )
 target_link_libraries(io container)
 
-# Module server
-# ================================
-file(GLOB MOD_SERVER_SRC modules/server/*.cpp)
-add_library(server)
-target_sources(server
-  PUBLIC
-    FILE_SET CXX_MODULES FILES
-    ${MOD_SERVER_SRC}
-)
-
 # Module raw
 # ================================
 file(GLOB MOD_RAW_SRC modules/raw/*.cpp)
@@ -100,9 +90,5 @@ target_sources(basio
     FILE_SET CXX_MODULES FILES
     ${MOD_BASIO_SRC}
 )
-
-file(GLOB MOD_SYNC_SRC  modules/sync/*.cpp modules/sync/*.h)
-add_library(sync)
-target_sources(sync PRIVATE ${MOD_SYNC_SRC})
 
 add_subdirectory(test)
