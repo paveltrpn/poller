@@ -57,11 +57,20 @@ export struct HttpRequest {
         return *this;
     }
 
-    bool isValid() { return handle_.isValid(); }
+    bool isValid() {
+        //
+        return handle_.isValid();
+    }
 
-    Handle& handle() { return handle_; };
+    Handle& handle() {
+        //
+        return handle_;
+    };
 
-    operator CURL*() { return handle_; };
+    operator CURL*() {
+        //
+        return handle_;
+    };
 
 private:
     Handle handle_;
