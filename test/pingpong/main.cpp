@@ -13,6 +13,8 @@ enum class Plyers { PING, PONG };
 
 std::vector<poller::PingPongCoro*> players;
 
+long long count{};
+
 std::suspend_always operator co_await( Plyers player ) {
     players[static_cast<size_t>( player )]->resume();
     return {};
@@ -20,16 +22,27 @@ std::suspend_always operator co_await( Plyers player ) {
 
 auto ping() -> poller::PingPongCoro {
     for ( ;; ) {
-        std::this_thread::sleep_for( 100ms );
-        std::println( "PING" );
+        ++count;
+
+        std::this_thread::sleep_for( 250ms );
+
+        std::println( "PING at {}", count );
+
         co_await Plyers::PONG;
     }
 }
 
 auto pong() -> poller::PingPongCoro {
+    long long j{};
+
     for ( ;; ) {
+        ++j;
+        ++count;
+
         std::this_thread::sleep_for( 500ms );
-        std::println( "PONG" );
+
+        std::println( "PONG at {}", count );
+
         co_await Plyers::PING;
     }
 }

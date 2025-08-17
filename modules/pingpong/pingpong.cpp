@@ -29,6 +29,11 @@ export struct PingPongCoro final {
             return std::suspend_never{};
         }
 
+        auto yield_value( long long value ) -> std::suspend_always {
+            value_ = value;
+            return {};
+        }
+
         auto return_void() -> void { /* noop */ }
 
         auto unhandled_exception() -> void {
@@ -38,6 +43,7 @@ export struct PingPongCoro final {
 
     public:
         std::exception_ptr exception_{ nullptr };
+        long long value_{};
     };
 
     PingPongCoro( handle_type h )
