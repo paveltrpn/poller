@@ -6,10 +6,14 @@ module;
 #include <functional>
 #include <mutex>
 #include <print>
+#include <chrono>
+#include <thread>
 
 export module poller:async;
 
 import :request;
+
+using namespace std::chrono_literals;
 
 namespace poller {
 
@@ -62,14 +66,6 @@ struct Task<void> {
     };
 };
 
-namespace __detail__ {
-// Global sync primitives, uses for suspend main thread when
-// call Task<Result>::get() if request not ready. Single
-// instance for all available coroutines.
-static std::condition_variable cv_;
-static std::mutex mtx_;
-}  // namespace __detail__
-
 export template <>
 struct Task<Result> {
     struct promise_type;
@@ -82,19 +78,26 @@ struct Task<Result> {
             return handle_type::from_promise( *this );
         };
 
-        auto return_value( Result value ) -> void {
-            //
-            payload_ = value;
-        }
-
         auto initial_suspend() noexcept -> std::suspend_never {
             //
             return {};
         }
 
+        // suspend_always because we call coroutine destroy() which cause
+        // UB if coroutine not in suspention point.
         auto final_suspend() noexcept -> std::suspend_always {
-            __detail__::cv_.notify_all();
+            {
+                std::lock_guard<std::mutex> _{ m_ };
+                ready_ = true;
+            }
+            cv_.notify_one();
+
             return {};
+        }
+
+        auto return_value( Result value ) -> void {
+            //
+            payload_ = value;
         }
 
         auto unhandled_exception() -> void {
@@ -105,6 +108,10 @@ struct Task<Result> {
     public:
         std::exception_ptr exception_{ nullptr };
         Result payload_;
+
+        std::condition_variable cv_;
+        std::mutex m_;
+        bool ready_{};
     };
 
     Task( handle_type h )
@@ -128,6 +135,7 @@ struct Task<Result> {
         return *this;
     }
 
+    // Move only.
     Task( const Task& ) = delete;
     Task& operator=( const Task& ) = delete;
 
@@ -157,10 +165,13 @@ struct Task<Result> {
         return !empty();
     }
 
+    // Block caller thread until coroutine reach final_suspend()
     Result get() {
-        // block caller thread until coroutine reach final_suspend()
-        std::unique_lock<std::mutex> lk{ __detail__::mtx_ };
-        __detail__::cv_.wait( lk, [this]() { return handle_.done(); } );
+        std::unique_lock<std::mutex> lk{ handle_.promise().m_ };
+        handle_.promise().cv_.wait( lk, [this]() {
+            //
+            return handle_.promise().ready_;
+        } );
 
         return handle_.promise().payload_;
     }

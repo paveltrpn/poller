@@ -11,6 +11,8 @@ import poller;
 
 using namespace std::chrono_literals;
 
+#define USER_AGENT "poller/0.2"
+
 enum class RequestEndpointEnum {
     POSTMAN_ECHO_GET,
     HTTPBIN_USERAGENT,
@@ -26,7 +28,7 @@ static const std::unordered_map<RequestEndpointEnum, std::string> requests = {
     { RequestEndpointEnum::COINDESK_CURENTPRICE,
       "https://api.coindesk.com/v1/bpi/currentprice.json" } };
 
-#define KEEP_ALIVE false
+#define KEEP_ALIVE true
 // Global Poller client object.
 poller::Poller client{ KEEP_ALIVE };
 
@@ -56,27 +58,27 @@ auto requestAndStop( std::string rqst ) -> poller::Task<void> {
 
 auto main( int argc, char** argv ) -> int {
     auto req = poller::HttpRequest{
-        requests.at( RequestEndpointEnum::POSTMAN_ECHO_GET ), "poller/0.2" };
+        requests.at( RequestEndpointEnum::POSTMAN_ECHO_GET ), USER_AGENT };
 
     httpRequestAsync( std::move( req ) );
-    httpRequestAsync( std::move( req ) );
 
-    // std::println( "request postman-echo.com" );
+    // req in moved-from state
+    // httpRequestAsync( std::move( req ) );
 
-    // std::vector<poller::Task<poller::Result>> resps;
+    std::vector<poller::Task<poller::Result>> resps;
+    for ( int i = 0; i < 3; ++i ) {
+        auto resp =
+            requestPromise( { "https://postman-echo.com/get", USER_AGENT } );
 
-    //for ( int i = 0; i < 10; ++i ) {
-    //    auto resp = requestPromise(
-    //        client, { "https://postman-echo.com/get", "curl coro/0.2" } );
+        resps.emplace_back( std::move( resp ) );
 
-    //    // resps.emplace_back( std::move( resp ) );
-    //    std::print( "resp {} performed\n", i );
-    //}
+        std::print( "resp {} performed\n", i );
+    }
 
-    //for ( int i = 0; i < 10; ++i ) {
-    //    //const auto [code, data] = resps[i].get();
-    //    //std::print( "resp {}\ncode: {}\nbody: {}\n", i, code, data );
-    //}
+    for ( auto&& prom : resps ) {
+        const auto [code, data] = prom.get();
+        std::print( "got code: {} body: {}\n", code, data );
+    }
 
     requestAsync( requests.at( RequestEndpointEnum::POSTMAN_ECHO_GET ) );
 
@@ -88,13 +90,14 @@ auto main( int argc, char** argv ) -> int {
 
     // requestAndStop( client, "https://postman-echo.com/get" );
 
+    // noop if KEEP_ALIVE
     client.run();
 
     // If client.run() not blocks then
     // wait some time until pending requests done.
     if ( KEEP_ALIVE ) {
-        std::println( " === wait for responses..." );
-        std::this_thread::sleep_for( 500ms );
+        std::println( "=== wait for responses..." );
+        std::this_thread::sleep_for( 5000ms );
     }
 
     return 0;
