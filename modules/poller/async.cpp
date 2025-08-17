@@ -22,13 +22,6 @@ export struct Result {
     std::string data;
 };
 
-export using CallbackFn = std::function<void( Result result )>;
-
-export struct Request {
-    CallbackFn callback;
-    std::string buffer;
-};
-
 export template <typename T>
 struct Task;
 

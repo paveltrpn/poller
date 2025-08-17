@@ -8,6 +8,7 @@ module;
 #include <thread>
 #include <print>
 #include <coroutine>
+#include <functional>
 
 #include <curl/curl.h>
 
@@ -18,6 +19,13 @@ import :request;
 import :handle;
 
 namespace poller {
+
+export using CallbackFn = std::function<void( Result result )>;
+
+export struct Request {
+    CallbackFn callback;
+    std::string buffer;
+};
 
 [[maybe_unused]] static size_t writeToBuffer( char* data, size_t size,
                                               size_t nmemb,

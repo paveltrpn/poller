@@ -15,6 +15,8 @@ using namespace std::chrono_literals;
 
 enum class RequestEndpointEnum {
     POSTMAN_ECHO_GET,
+    POSTMAN_ECHO_GET_ARG_STRING,
+    POSTMAN_ECHO_GET_ARG_42,
     HTTPBIN_USERAGENT,
     GSTATIC_GENERATE404,
     COINDESK_CURENTPRICE
@@ -22,6 +24,10 @@ enum class RequestEndpointEnum {
 
 static const std::unordered_map<RequestEndpointEnum, std::string> requests = {
     { RequestEndpointEnum::POSTMAN_ECHO_GET, "https://postman-echo.com/get" },
+    { RequestEndpointEnum::POSTMAN_ECHO_GET_ARG_STRING,
+      "https://postman-echo.com/get?arg=good_to_see_some_string_here" },
+    { RequestEndpointEnum::POSTMAN_ECHO_GET_ARG_42,
+      "https://postman-echo.com/get?arg=42" },
     { RequestEndpointEnum::HTTPBIN_USERAGENT, "http://httpbin.org/user-agent" },
     { RequestEndpointEnum::GSTATIC_GENERATE404,
       "http://www.gstatic.com/generate_204" },
@@ -31,6 +37,11 @@ static const std::unordered_map<RequestEndpointEnum, std::string> requests = {
 #define KEEP_ALIVE true
 // Global Poller client object.
 poller::Poller client{ KEEP_ALIVE };
+
+auto postmanGetString() -> poller::Task<poller::Result> {
+    co_return co_await client.requestAsyncPromise(
+        requests.at( RequestEndpointEnum::POSTMAN_ECHO_GET_ARG_STRING ) );
+}
 
 auto requestAsync( std::string rqst ) -> poller::Task<void> {
     auto resp = co_await client.requestAsyncVoid( rqst );
@@ -64,6 +75,12 @@ auto main( int argc, char** argv ) -> int {
 
     // req in moved-from state
     // httpRequestAsync( std::move( req ) );
+
+    {
+        auto resp = postmanGetString();
+        const auto [_, r] = resp.get();
+        std::println( "=== postman request string: {}", r );
+    }
 
     std::vector<poller::Task<poller::Result>> resps;
     for ( int i = 0; i < 3; ++i ) {
