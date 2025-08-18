@@ -26,6 +26,16 @@ add_executable(socket_test
 target_link_libraries(socket_test raw)
 
 add_executable(pingpong
-    pingpong/main.cpp
+    coro/pingpong.cpp
 )
 target_link_libraries(pingpong coro)
+
+add_executable(async_manual_reset_event
+    coro/async_manual_reset_event.cpp
+)
+target_link_libraries(async_manual_reset_event coro)
+
+add_executable(generator
+    coro/generator.cpp
+)
+target_link_libraries(generator coro)
