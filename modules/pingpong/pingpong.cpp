@@ -25,8 +25,11 @@ export struct PingPongCoro final {
         }
 
         auto final_suspend() noexcept {
-            //
-            return std::suspend_never{};
+            // NOTE: this couroutine type explicitly calls
+            // coroutine_handle::destroy() in destructor. This method can be
+            // called only on suspended coroutine! Hence we always suspend
+            // at the end of execution.
+            return std::suspend_always{};
         }
 
         auto yield_value( long long value ) -> std::suspend_always {
@@ -69,6 +72,36 @@ export struct PingPongCoro final {
         }
 
         return *this;
+    }
+
+    ~PingPongCoro() {
+        //
+        detach();
+    }
+
+    constexpr auto empty() const noexcept -> bool {
+        //
+        return handle_ == nullptr;
+    }
+
+    constexpr explicit operator bool() const noexcept {
+        //
+        return !empty();
+    }
+
+    auto detach() noexcept -> void {
+        if ( empty() ) {
+            return;
+        }
+
+        if ( handle_ ) {
+            std::println( "ping pong coro destroy" );
+
+            // Can be called only on suspended coroutine!
+            handle_.destroy();
+
+            handle_ = nullptr;
+        }
     }
 
     auto resume() {
