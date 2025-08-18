@@ -50,14 +50,14 @@ target_sources(poller
 )
 target_link_libraries(poller coro)
 
-# Module container
+# Module poller_std
 # ================================
-file(GLOB MOD_CONTAINER_SRC modules/container/*.cpp)
-add_library(container)
-target_sources(container
+file(GLOB MOD_STD_SRC modules/std/*.cpp)
+add_library(poller_std)
+target_sources(poller_std
   PUBLIC
     FILE_SET CXX_MODULES FILES
-    ${MOD_CONTAINER_SRC}
+    ${MOD_STD_SRC}
 )
 
 # Module io
@@ -69,7 +69,7 @@ target_sources(io
     FILE_SET CXX_MODULES FILES
     ${MOD_IO_SRC}
 )
-target_link_libraries(io container)
+target_link_libraries(io poller_std)
 
 # Module raw
 # ================================

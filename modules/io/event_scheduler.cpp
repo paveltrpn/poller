@@ -12,7 +12,7 @@ module;
 
 export module io:event_scheduler;
 
-import container;
+import poller_std;
 
 namespace poller::io {
 

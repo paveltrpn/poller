@@ -8,7 +8,7 @@ module;
 #include <mutex>
 #include <memory>
 
-export module container:list;
+export module poller_std:list;
 import :tag;
 
 namespace poller {
@@ -26,13 +26,13 @@ struct list<T, THREAD_SAFE_BLOCK> final {
     using value_type = std::shared_ptr<T>;
 
     // Consume external shared_ptr to value type.
-    auto append( value_type &&item ) -> void {
+    auto append( value_type&& item ) -> void {
         std::lock_guard _{ m_ };
         list_.emplace_back( item );
     }
 
     // Consume external shared_ptr to value type.
-    auto prepend( value_type &&item ) -> void {
+    auto prepend( value_type&& item ) -> void {
         std::lock_guard _{ m_ };
         list_.emplace_front( item );
     }

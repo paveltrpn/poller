@@ -13,7 +13,7 @@ module;
 export module io:timer;
 
 import :event_scheduler;
-import container;
+import poller_std;
 
 namespace poller::io {
 
