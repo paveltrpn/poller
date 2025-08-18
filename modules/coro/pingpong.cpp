@@ -4,7 +4,7 @@ module;
 #include <coroutine>
 #include <exception>
 
-export module pingpong;
+export module coro:pingpong;
 
 namespace poller {
 

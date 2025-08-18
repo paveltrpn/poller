@@ -9,9 +9,7 @@ module;
 #include <chrono>
 #include <thread>
 
-export module poller:async;
-
-import :request;
+export module coro:task;
 
 using namespace std::chrono_literals;
 

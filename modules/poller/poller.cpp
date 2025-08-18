@@ -14,7 +14,8 @@ module;
 
 export module poller:poller;
 
-import :async;
+import coro;
+
 import :request;
 import :handle;
 

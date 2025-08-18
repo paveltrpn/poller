@@ -48,7 +48,7 @@ target_sources(poller
     FILE_SET CXX_MODULES FILES
     ${MOD_POLLER_SRC}
 )
-
+target_link_libraries(poller coro)
 
 # Module container
 # ================================
@@ -91,14 +91,14 @@ target_sources(basio
     ${MOD_BASIO_SRC}
 )
 
-# Module pingpong_coro
+# Module coro
 # ================================
-file(GLOB MOD_PINGPONG_SRC modules/pingpong/*.cpp)
-add_library(pingpong_coro)
-target_sources(pingpong_coro
+file(GLOB MOD_CORO_SRC modules/coro/*.cpp)
+add_library(coro)
+target_sources(coro
   PUBLIC
     FILE_SET CXX_MODULES FILES
-    ${MOD_PINGPONG_SRC}
+    ${MOD_CORO_SRC}
 )
 
 add_subdirectory(test)

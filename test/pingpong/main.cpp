@@ -5,7 +5,7 @@
 #include <thread>
 #include <chrono>
 
-import pingpong;
+import coro;
 
 using namespace std::chrono_literals;
 
