@@ -24,11 +24,17 @@ export {
                 return Generator( handle_type::from_promise( *this ) );
             }
 
-            std::suspend_always initial_suspend() { return {}; }
+            auto initial_suspend() -> std::suspend_always {
+                //
+                return {};
+            }
 
-            std::suspend_always final_suspend() noexcept { return {}; }
+            auto final_suspend() noexcept -> std::suspend_always {
+                //
+                return {};
+            }
 
-            void unhandled_exception() {
+            auto unhandled_exception() -> void {
                 exception_ = std::current_exception();
             }
 
@@ -43,7 +49,7 @@ export {
             // Useful with "co_await i;"  operator
             //
             template <std::convertible_to<T> From>
-            std::suspend_always await_transform( From&& from ) {
+            auto await_transform( From&& from ) -> std::suspend_always {
                 value_ = std::forward<From>( from );
                 return {};
             }
@@ -79,7 +85,7 @@ export {
         }
 
     private:
-        void fill() {
+        auto fill() -> void {
             if ( !full_ ) {
                 h_();  // resume, equal to h_.resume()
                 if ( h_.promise().exception_ ) {

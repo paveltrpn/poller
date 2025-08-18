@@ -16,7 +16,7 @@ void producer() {
 
 // Can be called many times to create many tasks.
 // All consumer tasks will wait until value has been published.
-poller::task<void> consumer( std::string_view whoAmI ) {
+poller::Task<void> consumer( std::string_view whoAmI ) {
     // Wait until value has been published by awaiting event.
 
     if ( !event.is_set() ) {

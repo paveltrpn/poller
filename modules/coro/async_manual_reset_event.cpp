@@ -1,9 +1,9 @@
+// =======================================================
+// Example code for blog post 'Understanding Awaitables'
+// Copyright (c) Lewis Baker
+// =======================================================
 
 module;
-
-// Example code for blog post 'Understanding Awaitables'
-//
-// Copyright (c) Lewis Baker
 
 #include <coroutine>
 #include <atomic>
@@ -125,20 +125,5 @@ async_manual_reset_event::awaiter async_manual_reset_event::operator co_await()
     const noexcept {
     return awaiter{ *this };
 }
-
-export template <typename T>
-struct task;
-
-// A simple task-class for void-returning coroutines.
-export template <>
-struct task<void> {
-    struct promise_type {
-        task get_return_object() { return {}; }
-        std::suspend_never initial_suspend() { return {}; }
-        std::suspend_never final_suspend() noexcept { return {}; }
-        void return_void() {}
-        void unhandled_exception() {}
-    };
-};
 
 }  // namespace poller

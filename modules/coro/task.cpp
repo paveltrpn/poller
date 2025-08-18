@@ -23,6 +23,7 @@ export struct Result {
 export template <typename T>
 struct Task;
 
+// A simple task-class for void-returning coroutines.
 export template <>
 struct Task<void> {
     struct promise_type;
