@@ -6,11 +6,13 @@ module;
 #include <iostream>
 #include <vector>
 #include <thread>
+#include <semaphore>
 
 export module poller_std:queue;
 
 namespace poller {
 
+// Single producer single consumer lock-free queue.
 export template <typename T>
 struct spsc_lock_free_queue {
 public:
@@ -122,6 +124,73 @@ private:
     std::mutex mtx_;
     std::condition_variable not_empty_;
     std::condition_variable not_full_;
+    std::size_t head_{ 0 };
+    std::size_t tail_{ 0 };
+    std::size_t capacity_;
+    std::vector<T> buffer_;
+};
+
+template <typename T>
+class semaphore_queue {
+public:
+    semaphore_queue( std::size_t capacity )
+        : sem_empty_( capacity )
+        , sem_full_( 0 )
+        , capacity_{ capacity }
+        , buffer_( capacity ) {}
+
+    auto push( const T& item ) -> void {
+        sem_empty_.acquire();
+        std::unique_lock<std::mutex> lock( mtx_ );
+        buffer_[tail_] = item;
+        tail_ = next( tail_ );
+        lock.unlock();
+        sem_full_.release();
+    }
+
+    auto try_push( const T& item ) -> bool {
+        if ( !sem_empty_.try_acquire() ) {
+            return false;
+        }
+        std::unique_lock<std::mutex> lock( mtx_ );
+        buffer_[tail_] = item;
+        tail_ = next( tail_ );
+        lock.unlock();
+        sem_full_.release();
+
+        return true;
+    }
+
+    auto pop( T& item ) -> void {
+        sem_full_.acquire();
+        std::unique_lock<std::mutex> lock( mtx_ );
+        item = buffer_[head_];
+        head_ = next( head_ );
+        lock.unlock();
+        sem_empty_.release();
+    }
+
+    auto try_pop( T& item ) -> bool {
+        if ( !sem_full_.try_acquire() ) {
+            return false;
+        }
+        std::unique_lock<std::mutex> lock( mtx_ );
+        item = buffer_[head_];
+        head_ = next( head_ );
+        lock.unlock();
+        sem_empty_.release();
+        return true;
+    }
+
+private:
+    [[nodiscard]] auto next( std::size_t idx ) const noexcept -> size_t {
+        return ( ( idx + 1 ) % capacity_ );
+    }
+
+private:
+    std::mutex mtx_;
+    std::counting_semaphore<> sem_empty_;
+    std::counting_semaphore<> sem_full_;
     std::size_t head_{ 0 };
     std::size_t tail_{ 0 };
     std::size_t capacity_;
