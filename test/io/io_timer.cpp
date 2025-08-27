@@ -15,10 +15,6 @@ auto main( int argc, char** argv ) -> int {
         poller::io::Timer sched{};
         int counter{ 0 };
 
-#define SLEEP_FOR 1000ms
-        std::println( "main thread sleep for: {}", SLEEP_FOR );
-        std::this_thread::sleep_for( SLEEP_FOR );
-
         sched.timeout( 500, []( uv_timer_t* handle ) {
             //
             std::println( "timer fires" );
@@ -33,6 +29,10 @@ auto main( int argc, char** argv ) -> int {
             //
             std::println( "and again" );
         } );
+
+        std::println( "main thread waits..." );
+        std::this_thread::sleep_for( 2500ms );
+        std::println( "main thread start..." );
 
         sched.timeout(
             3000,
@@ -65,8 +65,6 @@ auto main( int argc, char** argv ) -> int {
             },
             &counter );
 
-        sched.run();
-        sched.sync_wait();
     } catch ( std::exception& e ) {
         std::println( "exception is {}", e.what() );
     }

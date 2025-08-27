@@ -30,21 +30,27 @@ struct EventScheduler {
 
         loop_ = static_cast<uv_loop_t*>( tmp );
 
-        //
+        // We not yet in loop thread. Calling this is safe.
         const auto ret = uv_loop_init( loop_ );
+
         std::println( "loop init with code {}", ret );
+
+        run_ = true;
 
         // Loop thread initialization.
         thread_ = std::make_unique<std::thread>( [this]() {
-            // Main thread must explicitly call run() to start event loop.
-            std::unique_lock<std::mutex> lk{ m_ };
-            cv_.wait( lk, [this]() {
-                //
-                return run_;
-            } );
+            while ( run_ ) {
+                // Main thread must explicitly call notify this
+                // thread to start event loop.
+                std::unique_lock<std::mutex> lk{ m_ };
+                cv_.wait( lk, [this]() {
+                    //
+                    return uv_loop_alive( loop_ );
+                } );
 
-            // Start event loop.
-            uv_run( loop_, UV_RUN_DEFAULT );
+                // Start event loop.
+                uv_run( loop_, UV_RUN_DEFAULT );
+            }
         } );
     }
 
@@ -55,30 +61,23 @@ struct EventScheduler {
     EventScheduler& operator=( EventScheduler&& other ) = delete;
 
     virtual ~EventScheduler() {
+        stop();
+
+        //
+        thread_->join();
+
+        // We already left loop thread.
+        // De-initialize and free the resources associated with an event loop.
         uv_loop_close( loop_ );
+
         // Release loop pointer.
         free( loop_ );
     }
 
-    // Manually start event loop thread.
-    auto run() -> void {
-        {
-            std::lock_guard<std::mutex> _{ m_ };
-            run_ = true;
-        }
-        cv_.notify_one();
-    }
-
-    // Lock caller thread until event loop finished.
-    auto sync_wait() -> void {
-        //
-        thread_->join();
-    }
-
 protected:
-    auto stop() {
+    auto stop() -> void {
         //
-        uv_stop( loop_ );
+        run_ = false;
     }
 
     auto findActiveJob() -> size_t {
@@ -107,13 +106,19 @@ protected:
         j->data = payload;
 
         // Initilaize async handle with specific payload and callback.
+        // NOTE: this is (probably) not thread safe!
         uv_async_init( loop_, j.get(), cb );
 
         // Submit job to event loop.
+        // This thread safe (one and only thread safe call across
+        // all lobuv API)
         uv_async_send( j.get() );
 
         // Store handle.
         pendingQueue_.append( std::move( j ) );
+
+        // If event loop thread already started then noop.
+        cv_.notify_one();
     }
 
 private:
@@ -126,7 +131,7 @@ private:
     //
     std::condition_variable cv_;
     std::mutex m_;
-    bool run_{ false };
+    std::atomic<bool> run_{ false };
 
     // Async handles that used for calling callbacks
     // on loop thread.
