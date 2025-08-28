@@ -69,7 +69,7 @@ target_sources(io
     FILE_SET CXX_MODULES FILES
     ${MOD_IO_SRC}
 )
-target_link_libraries(io poller_std)
+target_link_libraries(io poller_std coro)
 
 # Module raw
 # ================================

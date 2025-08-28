@@ -42,10 +42,11 @@ struct EventScheduler {
             while ( run_ ) {
                 // Main thread must explicitly call notify this
                 // thread to start event loop.
+
                 std::unique_lock<std::mutex> lk{ m_ };
                 cv_.wait( lk, [this]() {
                     //
-                    return uv_loop_alive( loop_ );
+                    return ( uv_loop_alive( loop_ ) || !run_ );
                 } );
 
                 // Start event loop.
@@ -78,6 +79,7 @@ protected:
     auto stop() -> void {
         //
         run_ = false;
+        cv_.notify_one();
     }
 
     auto findActiveJob() -> size_t {
