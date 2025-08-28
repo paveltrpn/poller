@@ -133,7 +133,10 @@ struct TimeoutAwaitable final {
         : timer_( timer )
         , timeout_{ timeout } {};
 
-    bool await_ready() const noexcept { return false; }
+    auto await_ready() const noexcept -> bool {
+        //
+        return false;
+    }
 
     auto await_suspend(
         std::coroutine_handle<typename T::promise_type> handle ) noexcept {
@@ -150,7 +153,9 @@ struct TimeoutAwaitable final {
         timer_.timeout( timeout_, cb, &handle_ );
     }
 
-    auto await_resume() const noexcept -> void {}
+    auto await_resume() const noexcept -> void {
+        //
+    }
 
     std::coroutine_handle<typename T::promise_type> handle_;
     Timer& timer_;
