@@ -16,7 +16,13 @@ std::unique_ptr<poller::io::Timer> timer;
 
 auto testTimeout( uint64_t timeout ) -> poller::Task<void> {
     co_await timer->timeout( timeout );
-    std::println( "coroutine resumed after {}", timeout );
+    std::println( "coroutine resumed after {} first time", timeout );
+
+    co_await timer->timeout( timeout );
+    std::println( "coroutine resumed after {} second time", timeout );
+
+    co_await timer->timeout( timeout );
+    std::println( "coroutine resumed after {} third time", timeout );
 }
 
 auto printHandlesCount( uint64_t timeout ) -> poller::Task<void> {
@@ -39,6 +45,8 @@ auto main( int argc, char** argv ) -> int {
 
     int counter{ 0 };
 
+    timer->start();
+
     testTimeout( 150 );
 
     timer->timeout( 250, []( uv_timer_t* handle ) {
@@ -51,9 +59,10 @@ auto main( int argc, char** argv ) -> int {
         std::println( "timer fires again" );
     } );
 
-    std::println( "main thread waits..." );
-    //std::this_thread::sleep_for( 2500ms );
-    std::println( "main thread start..." );
+    timer->run();
+    timer->syncWait();
+
+    timer->start();
 
     printHandlesCount( 1000 );
 
@@ -72,7 +81,8 @@ auto main( int argc, char** argv ) -> int {
         },
         &counter );
 
-    std::this_thread::sleep_for( 4000ms );
+    timer->run();
+    timer->syncWait();
 
     return 0;
 }

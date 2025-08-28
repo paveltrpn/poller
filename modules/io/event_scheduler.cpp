@@ -32,27 +32,6 @@ struct EventScheduler {
 
         // We not yet in loop thread. Calling this is safe.
         const auto ret = uv_loop_init( loop_ );
-
-        std::println( "loop init with code {}", ret );
-
-        run_ = true;
-
-        // Loop thread initialization.
-        thread_ = std::make_unique<std::thread>( [this]() {
-            while ( run_ ) {
-                // Main thread must explicitly call notify this
-                // thread to start event loop.
-
-                std::unique_lock<std::mutex> lk{ m_ };
-                cv_.wait( lk, [this]() {
-                    //
-                    return ( uv_loop_alive( loop_ ) || !run_ );
-                } );
-
-                // Start event loop.
-                uv_run( loop_, UV_RUN_DEFAULT );
-            }
-        } );
     }
 
     // Not copyable not moveable "service-like" object.
@@ -62,11 +41,6 @@ struct EventScheduler {
     EventScheduler& operator=( EventScheduler&& other ) = delete;
 
     virtual ~EventScheduler() {
-        stop();
-
-        //
-        thread_->join();
-
         // We already left loop thread.
         // De-initialize and free the resources associated with an event loop.
         uv_loop_close( loop_ );
@@ -75,13 +49,40 @@ struct EventScheduler {
         free( loop_ );
     }
 
-protected:
-    auto stop() -> void {
+    auto start() -> void {
+        // Loop thread initialization.
+        thread_ = std::make_unique<std::thread>( [this]() {
+            // Main thread must explicitly call notify this
+            // thread to start event loop.
+            std::unique_lock<std::mutex> lk{ m_ };
+            cv_.wait( lk, [this]() {
+                //
+                return run_;
+            } );
+
+            // Start event loop.
+            uv_run( loop_, UV_RUN_DEFAULT );
+        } );
+    }
+
+    auto run() -> void {
         //
-        run_ = false;
+        {
+            std::lock_guard<std::mutex> _{ m_ };
+            run_ = true;
+        }
         cv_.notify_one();
     }
 
+    auto syncWait() -> void {
+        //
+        thread_->join();
+
+        //
+        thread_.reset();
+    }
+
+protected:
     auto findActiveJob() -> size_t {
         auto it = std::find_if(
             pendingQueue_.begin(), pendingQueue_.end(), []( auto& item ) {
@@ -118,9 +119,6 @@ protected:
 
         // Store handle.
         pendingQueue_.append( std::move( j ) );
-
-        // If event loop thread already started then noop.
-        cv_.notify_one();
     }
 
 private:
@@ -133,7 +131,7 @@ private:
     //
     std::condition_variable cv_;
     std::mutex m_;
-    std::atomic<bool> run_{ false };
+    bool run_{ false };
 
     // Async handles that used for calling callbacks
     // on loop thread.
