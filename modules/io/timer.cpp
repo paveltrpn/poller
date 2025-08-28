@@ -157,8 +157,6 @@ struct TimeoutAwaitable final {
     uint64_t timeout_;
 };
 
-//======================================================================
-
 auto Timer::timeout( uint64_t timeout ) -> TimeoutAwaitable<Task<void>> {
     //
     return { *this, timeout };

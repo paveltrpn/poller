@@ -31,7 +31,7 @@ auto printHandlesCount( uint64_t timeout ) -> poller::Task<void> {
                   timer->handlesCount() );
 }
 
-auto printHandlesInfo( uint64_t timeout ) -> poller::Task<void> {
+auto printTimersInfo( uint64_t timeout ) -> poller::Task<void> {
     co_await timer->timeout( timeout );
     timer->handlesInfo();
 }
@@ -66,7 +66,7 @@ auto main( int argc, char** argv ) -> int {
 
     printHandlesCount( 1000 );
 
-    printHandlesInfo( 3000 );
+    printTimersInfo( 3000 );
 
     timer->repeat(
         300,
