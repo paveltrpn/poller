@@ -45,8 +45,6 @@ auto main( int argc, char** argv ) -> int {
 
     int counter{ 0 };
 
-    timer->start();
-
     testTimeout( 150 );
 
     timer->timeout( 250, []( uv_timer_t* handle ) {
@@ -58,11 +56,6 @@ auto main( int argc, char** argv ) -> int {
         //
         std::println( "timer fires again" );
     } );
-
-    timer->run();
-    timer->syncWait();
-
-    timer->start();
 
     printHandlesCount( 1000 );
 
@@ -81,7 +74,6 @@ auto main( int argc, char** argv ) -> int {
         },
         &counter );
 
-    timer->run();
     timer->syncWait();
 
     return 0;

@@ -107,22 +107,6 @@ export struct Timer final : EventScheduler {
     }
 
 private:
-    // Find first active uv_timer_t handle that can be used
-    // to perform operation.
-    auto findActive() -> size_t {
-        auto it = pool_.find_if( []( std::shared_ptr<TimerHandle> item ) {
-            return uv_is_active( reinterpret_cast<const uv_handle_t*>(
-                       item.get() ) ) != 0;
-        } );
-
-        if ( it != pool_.cend() ) {
-            return std::distance( pool_.begin(), it );
-        } else {
-            return -1;
-        }
-    }
-
-private:
     // Timer handles.
     poller::list<TimerHandle> pool_;
 };

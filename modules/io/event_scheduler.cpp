@@ -32,6 +32,20 @@ struct EventScheduler {
 
         // We not yet in loop thread. Calling this is safe.
         const auto ret = uv_loop_init( loop_ );
+
+        // Loop thread initialization.
+        thread_ = std::make_unique<std::thread>( [this]() {
+            // Main thread must explicitly call notify this
+            // thread to start event loop.
+            std::unique_lock<std::mutex> lk{ m_ };
+            cv_.wait( lk, [this]() {
+                //
+                return run_;
+            } );
+
+            // Start event loop.
+            uv_run( loop_, UV_RUN_DEFAULT );
+        } );
     }
 
     // Not copyable not moveable "service-like" object.
@@ -49,54 +63,18 @@ struct EventScheduler {
         free( loop_ );
     }
 
-    auto start() -> void {
-        // Loop thread initialization.
-        thread_ = std::make_unique<std::thread>( [this]() {
-            // Main thread must explicitly call notify this
-            // thread to start event loop.
-            std::unique_lock<std::mutex> lk{ m_ };
-            cv_.wait( lk, [this]() {
-                //
-                return run_;
-            } );
-
-            // Start event loop.
-            uv_run( loop_, UV_RUN_DEFAULT );
-        } );
-    }
-
-    auto run() -> void {
-        //
+    auto syncWait() -> void {
         {
             std::lock_guard<std::mutex> _{ m_ };
             run_ = true;
         }
         cv_.notify_one();
-    }
 
-    auto syncWait() -> void {
         //
         thread_->join();
-
-        //
-        thread_.reset();
     }
 
 protected:
-    auto findActiveJob() -> size_t {
-        auto it = std::find_if(
-            pendingQueue_.begin(), pendingQueue_.end(), []( auto& item ) {
-                return uv_is_active( reinterpret_cast<const uv_handle_t*>(
-                           item.get() ) ) != 0;
-            } );
-
-        if ( it != pendingQueue_.cend() ) {
-            return std::distance( pendingQueue_.begin(), it );
-        } else {
-            return -1;
-        }
-    }
-
     // Add new uv_async_t handle in queue and submit callback to event loop within it.
     // That async handle contain a pointer to specific data, that will be
     // used in callback and callback to perform action on event loop thread itself.
