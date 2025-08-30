@@ -42,9 +42,10 @@ export struct Timer final : EventScheduler {
         t->repeat_ = repeat;
         t->cb_ = cb;
 
-        t->handle_.data = payload;
+        uv_handle_set_data( reinterpret_cast<uv_handle_t*>( &t->handle_ ),
+                            payload );
 
-        schedule( t.get(), []( uv_async_t* handle ) {
+        auto timerCb = []( uv_async_t* handle ) {
             auto timer = static_cast<TimerHandle*>( handle->data );
 
             uv_timer_init( handle->loop, &timer->handle_ );
@@ -54,7 +55,9 @@ export struct Timer final : EventScheduler {
             // Manually close active uv_async_t handle.
             // It exclude this handle from event loop queue.
             uv_close( reinterpret_cast<uv_handle_t*>( handle ), nullptr );
-        } );
+        };
+
+        schedule( t.get(), timerCb );
 
         pool_.append( std::move( t ) );
     };
@@ -70,9 +73,10 @@ export struct Timer final : EventScheduler {
         t->repeat_ = 0;
         t->cb_ = cb;
 
-        t->handle_.data = payload;
+        uv_handle_set_data( reinterpret_cast<uv_handle_t*>( &t->handle_ ),
+                            payload );
 
-        schedule( t.get(), []( uv_async_t* handle ) {
+        auto timerCb = []( uv_async_t* handle ) {
             auto timer = static_cast<TimerHandle*>( handle->data );
 
             uv_timer_init( handle->loop, &timer->handle_ );
@@ -80,7 +84,9 @@ export struct Timer final : EventScheduler {
                             timer->repeat_ );
 
             uv_close( reinterpret_cast<uv_handle_t*>( handle ), nullptr );
-        } );
+        };
+
+        schedule( t.get(), timerCb );
 
         pool_.append( std::move( t ) );
     };
@@ -124,7 +130,7 @@ struct TimeoutAwaitable final {
 
     auto await_suspend(
         std::coroutine_handle<typename T::promise_type> handle ) noexcept {
-        //
+        // Coroutine resume callback.
         auto cb = []( uv_timer_t* timer ) {
             auto handle =
                 static_cast<std::coroutine_handle<typename T::promise_type>*>(
