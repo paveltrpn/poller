@@ -81,16 +81,6 @@ target_sources(raw
     ${MOD_RAW_SRC}
 )
 
-# Module basio
-# ================================
-file(GLOB MOD_BASIO_SRC modules/basio/*.cpp)
-add_library(basio)
-target_sources(basio
-  PUBLIC
-    FILE_SET CXX_MODULES FILES
-    ${MOD_BASIO_SRC}
-)
-
 # Module coro
 # ================================
 file(GLOB MOD_CORO_SRC modules/coro/*.cpp)
