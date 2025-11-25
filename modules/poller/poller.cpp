@@ -29,15 +29,15 @@ export struct Request {
     std::string buffer;
 };
 
-[[maybe_unused]] static size_t writeToRequest( char* ptr, size_t, size_t nmemb,
-                                               void* tab ) {
+[[maybe_unused]] auto writeToRequest( char* ptr, size_t, size_t nmemb,
+                                      void* tab ) -> size_t {
     auto r = reinterpret_cast<Request*>( tab );
     r->buffer.append( ptr, nmemb );
     return nmemb;
 }
 
-[[maybe_unused]] static size_t fillRequest( char* ptr, size_t, size_t nmemb,
-                                            Request* tab ) {
+[[maybe_unused]] auto fillRequest( char* ptr, size_t, size_t nmemb,
+                                   Request* tab ) -> size_t {
     tab->buffer.append( ptr, nmemb );
     return nmemb;
 }
@@ -66,7 +66,7 @@ public:
         }
 
         worker_ = std::make_unique<std::jthread>(
-            [this]( std::stop_token st ) {
+            [this]( std::stop_token st ) -> void {
                 // If keepAlive == true then we go directly in curl poll loop and
                 // spin in it until Poller object destructor or explicit stop() call.
                 // Else main thread must explicitly call run() to start curl multi loop and
@@ -209,8 +209,8 @@ public:
 
     Poller( const Poller& other ) = delete;
     Poller( Poller&& other ) = delete;
-    Poller& operator=( const Poller& other ) = delete;
-    Poller& operator=( Poller&& other ) = delete;
+    auto operator=( const Poller& other ) -> Poller& = delete;
+    auto operator=( Poller&& other ) -> Poller& = delete;
 
     auto performRequest( const HttpRequest& request, CallbackFn cb )
         -> void = delete;
@@ -219,7 +219,7 @@ public:
         const HttpRequest& request ) = delete;
 
     void performRequest( const std::string& url, CallbackFn cb ) {
-        Request* requestPtr = new Request{ std::move( cb ), {} };
+        auto requestPtr = new Request{ std::move( cb ), {} };
         poller::Handle handle;
         handle.setopt<CURLOPT_URL>( url );
         handle.setopt<CURLOPT_USERAGENT>( "poller/0.1" );
@@ -246,7 +246,7 @@ public:
 
     void performRequest( HttpRequest&& request, CallbackFn cb ) {
         if ( request.isValid() ) {
-            Request* requestPtr = new Request{ std::move( cb ), {} };
+            auto requestPtr = new Request{ std::move( cb ), {} };
 
             request.handle().setopt<CURLOPT_WRITEFUNCTION>( writeToRequest );
             request.handle().setopt<CURLOPT_WRITEDATA>( requestPtr );
@@ -306,7 +306,11 @@ struct RequestAwaitable final {
                                 } );
     }
 
-    Result await_resume() const noexcept { return std::move( result_ ); }
+    [[nodiscard]]
+    auto await_resume() const noexcept -> Result {
+        //
+        return std::move( result_ );
+    }
 
     Poller& client_;
     T request_;
