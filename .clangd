@@ -59,5 +59,6 @@ Diagnostics:
     - "cppcoreguidelines-macro-usage"
     - "cppcoreguidelines-pro-type-vararg"
     - "cppcoreguidelines-prefer-member-initializer"
+    - "misc-use-internal-linkage"
     CheckOptions:
       readability-identifier-naming.VariableCase: CamelCase

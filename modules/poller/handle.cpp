@@ -94,6 +94,9 @@ struct Handle final {
     template <CURLoption Opt>
     requires CurlOptString<Opt> auto setopt( const std::string& value )
         -> void {
+        // Strings passed to libcurl as 'char *' arguments, are copied by the library;
+        // the string storage associated to the pointer argument may be discarded or
+        // reused after curl_easy_setopt returns.
         curl_easy_setopt( handle_, Opt, value.c_str() );
     };
 
@@ -118,7 +121,7 @@ struct Handle final {
         return handle_;
     };
 
-    bool isValid() {
+    auto isValid() -> bool {
         //
         return !( handle_ == nullptr );
     };
