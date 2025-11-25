@@ -4,6 +4,7 @@ module;
 #include <string>
 #include <concepts>
 #include <curl/curl.h>
+#include <curl/easy.h>
 
 export module poller:handle;
 
@@ -69,6 +70,7 @@ struct Handle final {
 
     auto operator=( Handle&& other ) noexcept -> Handle& {
         if ( this != &other ) {
+            curl_easy_cleanup( handle_ );
             handle_ = other.handle_;
             other.handle_ = nullptr;
         }
