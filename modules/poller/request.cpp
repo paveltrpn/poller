@@ -3,6 +3,7 @@ module;
 #include <string>
 #include <numeric>
 #include <span>
+
 #include <curl/curl.h>
 
 export module poller:request;
@@ -24,7 +25,8 @@ auto formattedFields(
     -> std::string {
     std::string result;
     result.reserve( std::accumulate(
-        fields.begin(), fields.end(), 0, []( size_t acc, const auto& pair ) {
+        fields.begin(), fields.end(), 0,
+        []( size_t acc, const auto& pair ) -> size_t {
             return acc + pair.first.size() + pair.second.size() + 2;
         } ) );
 
