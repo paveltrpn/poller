@@ -43,26 +43,27 @@ export struct HttpRequest {
     };
 
     HttpRequest( const HttpRequest& other ) = delete;
-    HttpRequest& operator=( const HttpRequest& other ) = delete;
 
     HttpRequest( HttpRequest&& other ) {
         //
         handle_ = std::move( other.handle_ );
     }
 
-    HttpRequest& operator=( HttpRequest&& other ) {
+    auto operator=( const HttpRequest& other ) -> HttpRequest& = delete;
+
+    auto operator=( HttpRequest&& other ) -> HttpRequest& {
         if ( this != &other ) {
             handle_ = std::move( other.handle_ );
         }
         return *this;
     }
 
-    bool isValid() {
+    auto isValid() -> bool {
         //
         return handle_.isValid();
     }
 
-    Handle& handle() {
+    auto handle() -> Handle& {
         //
         return handle_;
     };
@@ -71,6 +72,11 @@ export struct HttpRequest {
         //
         return handle_;
     };
+
+    auto enableDebug() -> void {
+        //
+        handle_.enableDebug();
+    }
 
 private:
     Handle handle_;

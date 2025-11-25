@@ -55,12 +55,6 @@ struct Handle final {
     Handle() {
         //
         handle_ = curl_easy_init();
-
-        // Setup debug output function.
-        curl_easy_setopt( handle_, CURLOPT_DEBUGFUNCTION, debugTraceAll );
-
-        // The DEBUGFUNCTION has no effect until we enable VERBOSE .
-        curl_easy_setopt( handle_, CURLOPT_VERBOSE, 1L );
     }
 
     ~Handle() = default;
@@ -79,6 +73,14 @@ struct Handle final {
             other.handle_ = nullptr;
         }
         return *this;
+    }
+
+    auto enableDebug() {
+        // Setup debug output function.
+        curl_easy_setopt( handle_, CURLOPT_DEBUGFUNCTION, debugTraceAll );
+
+        // The DEBUGFUNCTION has no effect until we enable VERBOSE.
+        curl_easy_setopt( handle_, CURLOPT_VERBOSE, 1L );
     }
 
     template <CURLoption Opt>

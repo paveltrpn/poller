@@ -72,6 +72,7 @@ auto main( int argc, char** argv ) -> int {
     auto req = poller::HttpRequest{
         requests.at( RequestEndpointEnum::POSTMAN_ECHO_GET ), USER_AGENT };
 
+    // req.enableDebug();
     httpRequestAsync( std::move( req ) );
 
     // req in moved-from state
