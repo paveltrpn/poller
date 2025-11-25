@@ -18,6 +18,7 @@ import coro;
 
 import :request;
 import :handle;
+import :write_func;
 
 namespace poller {
 
@@ -27,17 +28,6 @@ export struct Request {
     CallbackFn callback;
     std::string buffer;
 };
-
-[[maybe_unused]] static size_t writeToBuffer( char* data, size_t size,
-                                              size_t nmemb,
-                                              std::string* buffer ) {
-    size_t result{};
-    if ( buffer != nullptr ) {
-        buffer->append( data, size * nmemb );
-        result = size * nmemb;
-    }
-    return result;
-}
 
 [[maybe_unused]] static size_t writeToRequest( char* ptr, size_t, size_t nmemb,
                                                void* tab ) {
