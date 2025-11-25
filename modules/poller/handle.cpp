@@ -147,28 +147,30 @@ struct Handle final {
     }
 
     template <CURLoption Opt>
-    requires CurlOptCallable<Opt> void setopt(
-        CurlWriteFunctionType auto value ) {
+    requires CurlOptCallable<Opt> auto setopt(
+        CurlWriteFunctionType auto value ) -> void {
         curl_easy_setopt( handle_, Opt, value );
     };
 
     template <CURLoption Opt>
-    requires CurlOptString<Opt> void setopt( const std::string& value ) {
+    requires CurlOptString<Opt> auto setopt( const std::string& value )
+        -> void {
         curl_easy_setopt( handle_, Opt, value.c_str() );
     };
 
     template <CURLoption Opt>
-    requires CurlOptLong<Opt> void setopt( std::integral auto value ) {
+    requires CurlOptLong<Opt> auto setopt( std::integral auto value ) -> void {
         curl_easy_setopt( handle_, Opt, value );
     };
 
     template <CURLoption Opt>
-    requires CurlOptObject<Opt> void setopt( CurlObjectType auto value ) {
+    requires CurlOptObject<Opt> auto setopt( CurlObjectType auto value )
+        -> void {
         curl_easy_setopt( handle_, Opt, value );
     };
 
     template <CURLoption Opt>
-    requires CurlOptSList<Opt> void setopt( curl_slist* value ) {
+    requires CurlOptSList<Opt> auto setopt( curl_slist* value ) -> void {
         curl_easy_setopt( handle_, Opt, value );
     };
 
