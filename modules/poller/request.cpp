@@ -11,7 +11,7 @@ import :handle;
 
 namespace poller {
 
-export std::string urlEncode( CURL* curl, std::string_view url ) {
+auto urlEncode( CURL* curl, std::string_view url ) -> std::string {
     char* result =
         curl_easy_escape( curl, url.data(), static_cast<int>( url.size() ) );
     const std::string encoded{ result };
@@ -19,8 +19,9 @@ export std::string urlEncode( CURL* curl, std::string_view url ) {
     return encoded;
 }
 
-export std::string formattedFields(
-    CURL* curl, std::span<const std::pair<std::string, std::string>> fields ) {
+auto formattedFields(
+    CURL* curl, std::span<const std::pair<std::string, std::string>> fields )
+    -> std::string {
     std::string result;
     result.reserve( std::accumulate(
         fields.begin(), fields.end(), 0, []( size_t acc, const auto& pair ) {
@@ -44,14 +45,16 @@ export struct HttpRequest {
 
     HttpRequest( const HttpRequest& other ) = delete;
 
-    HttpRequest( HttpRequest&& other ) {
+    HttpRequest( HttpRequest&& other ) noexcept {
         //
         handle_ = std::move( other.handle_ );
     }
 
+    ~HttpRequest() = default;
+
     auto operator=( const HttpRequest& other ) -> HttpRequest& = delete;
 
-    auto operator=( HttpRequest&& other ) -> HttpRequest& {
+    auto operator=( HttpRequest&& other ) noexcept -> HttpRequest& {
         if ( this != &other ) {
             handle_ = std::move( other.handle_ );
         }

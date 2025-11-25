@@ -57,5 +57,6 @@ Diagnostics:
     - "cppcoreguidelines-pro-type-reinterpret-cast"
     - "cppcoreguidelines-avoid-magic-numbers"
     - "cppcoreguidelines-macro-usage"
+    - "cppcoreguidelines-pro-type-vararg"
     CheckOptions:
       readability-identifier-naming.VariableCase: CamelCase

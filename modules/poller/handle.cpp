@@ -60,14 +60,14 @@ struct Handle final {
     ~Handle() = default;
 
     Handle( const Handle& other ) = delete;
-    Handle& operator=( const Handle& other ) = delete;
+    auto operator=( const Handle& other ) -> Handle& = delete;
 
-    Handle( Handle&& other ) {
+    Handle( Handle&& other ) noexcept {
         handle_ = other.handle_;
         other.handle_ = nullptr;
     }
 
-    Handle& operator=( Handle&& other ) {
+    auto operator=( Handle&& other ) noexcept -> Handle& {
         if ( this != &other ) {
             handle_ = other.handle_;
             other.handle_ = nullptr;
