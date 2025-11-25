@@ -258,17 +258,17 @@ public:
         }
     }
 
-    RequestAwaitable<std::string, Task<void>> requestAsyncVoid(
-        std::string url );
+    auto requestAsyncVoid( std::string url )
+        -> RequestAwaitable<std::string, Task<void>>;
 
-    RequestAwaitable<std::string, Task<Result>> requestAsyncPromise(
-        std::string url );
+    auto requestAsyncPromise( std::string url )
+        -> RequestAwaitable<std::string, Task<Result>>;
 
-    RequestAwaitable<HttpRequest, Task<void>> requestAsyncVoid(
-        HttpRequest&& request );
+    auto requestAsyncVoid( HttpRequest&& request )
+        -> RequestAwaitable<HttpRequest, Task<void>>;
 
-    RequestAwaitable<HttpRequest, Task<Result>> requestAsyncPromise(
-        HttpRequest&& request );
+    auto requestAsyncPromise( HttpRequest&& request )
+        -> RequestAwaitable<HttpRequest, Task<Result>>;
 
 private:
     // curl multi worker thread.
@@ -294,13 +294,16 @@ struct RequestAwaitable final {
         , request_( std::move( request ) ) {};
 
     // HTTP request always NOT ready immedieateley!
-    bool await_ready() const noexcept { return false; }
+    [[nodiscard]]
+    auto await_ready() const noexcept -> bool {
+        return false;
+    }
 
     // can be void, bool, coroutine_handle<>
     auto await_suspend(
         std::coroutine_handle<typename U::promise_type> handle ) noexcept {
         client_.performRequest( std::move( request_ ),
-                                [handle, this]( Result res ) {
+                                [handle, this]( Result res ) -> void {
                                     result_ = std::move( res );
                                     handle.resume();
                                 } );
