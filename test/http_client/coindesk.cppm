@@ -1,3 +1,4 @@
+
 module;
 
 #include <format>
@@ -7,33 +8,34 @@ module;
 #include <thread>
 #include <chrono>
 
-export module gstatic;
+export module coindesk;
 
 import poller;
 import coro;
 
-namespace gstatic {
+namespace coindesk {
 
 using namespace std::chrono_literals;
 
 #define KEEP_ALIVE true
 
-const std::string GSTATIC_GENERATE404 = "http://www.gstatic.com/generate_204";
+const std::string COINDESK_CURENTPRICE =
+    "https://api.coindesk.com/v1/bpi/currentprice.json";
 
-export struct GstaticClient final {
-    GstaticClient() = default;
+export struct CoindeskClient final {
+    CoindeskClient() = default;
 
-    GstaticClient( const GstaticClient& other ) = delete;
-    GstaticClient( GstaticClient&& other ) = delete;
+    CoindeskClient( const CoindeskClient& other ) = delete;
+    CoindeskClient( CoindeskClient&& other ) = delete;
 
-    auto operator=( const GstaticClient& other ) -> GstaticClient& = delete;
-    auto operator=( GstaticClient&& other ) -> GstaticClient& = delete;
+    auto operator=( const CoindeskClient& other ) -> CoindeskClient& = delete;
+    auto operator=( CoindeskClient&& other ) -> CoindeskClient& = delete;
 
-    ~GstaticClient() = default;
+    ~CoindeskClient() = default;
 
     auto run() -> void {
         //
-        requestAsync( GSTATIC_GENERATE404 );
+        requestAsync( COINDESK_CURENTPRICE );
 
         client_.run();
 
@@ -53,4 +55,4 @@ private:
     poller::Poller client_{ KEEP_ALIVE };
 };
 
-}  // namespace gstatic
+}  // namespace coindesk

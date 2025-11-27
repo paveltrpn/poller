@@ -34,6 +34,8 @@ export struct PostmanClient final {
     auto operator=( const PostmanClient& other ) -> PostmanClient& = delete;
     auto operator=( PostmanClient&& other ) -> PostmanClient& = delete;
 
+    ~PostmanClient() = default;
+
     auto run() -> void {
         auto coroHandle = getString();
 
