@@ -216,8 +216,8 @@ public:
     auto performRequest( const HttpRequest& request, CallbackFn cb )
         -> void = delete;
 
-    RequestAwaitable<HttpRequest, Task<void>> requestAsync(
-        const HttpRequest& request ) = delete;
+    auto requestAsync( const HttpRequest& request )
+        -> RequestAwaitable<HttpRequest, Task<void>> = delete;
 
     void performRequest( const std::string& url, CallbackFn cb ) {
         auto requestPtr = new Request{ std::move( cb ), {} };
@@ -322,26 +322,26 @@ struct RequestAwaitable final {
     Result result_;
 };
 
-RequestAwaitable<std::string, Task<void>> Poller::requestAsyncVoid(
-    std::string url ) {
+auto Poller::requestAsyncVoid( std::string url )
+    -> RequestAwaitable<std::string, Task<void>> {
     //
     return { *this, std::move( url ) };
 }
 
-RequestAwaitable<std::string, Task<Result>> Poller::requestAsyncPromise(
-    std::string url ) {
+auto Poller::requestAsyncPromise( std::string url )
+    -> RequestAwaitable<std::string, Task<Result>> {
     //
     return { *this, std::move( url ) };
 }
 
-RequestAwaitable<HttpRequest, Task<void>> Poller::requestAsyncVoid(
-    HttpRequest&& request ) {
+auto Poller::requestAsyncVoid( HttpRequest&& request )
+    -> RequestAwaitable<HttpRequest, Task<void>> {
     //
     return { *this, std::move( request ) };
 }
 
-RequestAwaitable<HttpRequest, Task<Result>> Poller::requestAsyncPromise(
-    HttpRequest&& request ) {
+auto Poller::requestAsyncPromise( HttpRequest&& request )
+    -> RequestAwaitable<HttpRequest, Task<Result>> {
     //
     return { *this, std::move( request ) };
 }
