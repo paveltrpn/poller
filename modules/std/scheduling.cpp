@@ -371,7 +371,7 @@ private:
     * The threads, managed by the thread pool, execute tasks in a work-stealing
     * manner.
     */
-class ThreadPool {
+export class ThreadPool {
 public:
     /**
       * \brief Creates a `ThreadPool` instance.
