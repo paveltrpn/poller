@@ -388,7 +388,7 @@ public:
         , queues_{ threads_count + 1 } {
         threads_.reserve( threads_count );
         for ( unsigned i = 0; i != threads_count; ++i ) {
-            threads_.emplace_back( [this, i] { Run( i + 1 ); } );
+            threads_.emplace_back( [this, i] -> void { Run( i + 1 ); } );
         }
     }
 
