@@ -254,6 +254,8 @@ public:
             request.handle().setopt<CURLOPT_WRITEDATA>( requestPtr );
             request.handle().setopt<CURLOPT_PRIVATE>( requestPtr );
 
+            // Is this thrad safe to add easy handle to multi
+            // when multi handle performing loop cuntinues???
             curl_multi_add_handle( multiHandle_, request );
         } else {
             std::println( "poller request not performed, request is invalid!" );
