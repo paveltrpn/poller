@@ -16,7 +16,7 @@ using namespace std::chrono_literals;
 namespace poller {
 
 export struct Result {
-    int code;
+    long code;
     std::string data;
 };
 

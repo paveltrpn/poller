@@ -73,7 +73,7 @@ public:
                 // blocks in it untill all penditg requests complete.
                 if ( !keepAlive_ ) {
                     std::unique_lock<std::mutex> lk{ m_ };
-                    cv_.wait( lk, [this]() {
+                    cv_.wait( lk, [this]() -> bool {
                         //
                         return run_;
                     } );
@@ -118,11 +118,7 @@ public:
                         if ( msg && ( msg->msg == CURLMSG_DONE ) ) {
                             CURL* handle = msg->easy_handle;
 
-                            // if remove this everything broke!!!
-                            CURLcode foobar{};
-                            //
-
-                            int code{};
+                            long code{};
                             {
                                 const auto res = curl_easy_getinfo(
                                     handle, CURLINFO_RESPONSE_CODE, &code );
@@ -133,16 +129,20 @@ public:
                                 }
                             }
 
-                            Request* requestPtr{};
+                            auto requestPtr = (Request*){};
                             {
+                                auto privatePtr = (void*){};
                                 const auto res = curl_easy_getinfo(
-                                    handle, CURLINFO_PRIVATE, &requestPtr );
+                                    handle, CURLINFO_PRIVATE, &privatePtr );
 
                                 if ( res != CURLE_OK ) {
                                     std::println(
                                         "curl_easy_getinfo failed, code {}\n",
                                         curl_easy_strerror( res ) );
                                 }
+
+                                requestPtr =
+                                    reinterpret_cast<Request*>( privatePtr );
                             }
 
                             requestPtr->callback(
@@ -151,6 +151,7 @@ public:
                             curl_multi_remove_handle( multiHandle_, handle );
                             curl_easy_cleanup( handle );
 
+                            // Delete manually allocated data.
                             delete requestPtr;
                         }
                     } while ( msg );
@@ -246,6 +247,7 @@ public:
 
     void performRequest( HttpRequest&& request, CallbackFn cb ) {
         if ( request.isValid() ) {
+            // Allocate Requset data. Delete after curl perform actions.
             auto requestPtr = new Request{ std::move( cb ), {} };
 
             request.handle().setopt<CURLOPT_WRITEFUNCTION>( writeToRequest );
