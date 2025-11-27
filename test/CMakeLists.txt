@@ -15,10 +15,30 @@ add_executable(io_timer
 )
 target_link_libraries(io_timer uv io)
 
-add_executable(poller_http
-    poller/http.cpp
+add_executable(http_client
+    http_client/http.cpp
 )
-target_link_libraries(poller_http poller curl)
+target_link_libraries(http_client poller curl)
+
+add_executable(postman)
+target_sources(postman PUBLIC http_client/postman.cpp)
+target_sources(postman PUBLIC FILE_SET CXX_MODULES FILES http_client/postman.cppm)
+target_link_libraries(postman poller curl)
+
+add_executable(httpbin)
+target_sources(httpbin PUBLIC http_client/httpbin.cpp)
+target_sources(httpbin PUBLIC FILE_SET CXX_MODULES FILES http_client/httpbin.cppm)
+target_link_libraries(httpbin poller curl)
+
+add_executable(gstatic)
+target_sources(gstatic PUBLIC http_client/gstatic.cpp)
+target_sources(gstatic PUBLIC FILE_SET CXX_MODULES FILES http_client/gstatic.cppm)
+target_link_libraries(gstatic poller curl)
+
+#add_executable(coindesk)
+#target_sources(coindesk PUBLIC http_client/coindesk.cpp)
+#target_sources(coindesk PUBLIC FILE_SET CXX_MODULES FILES http_client/coindesk.cppm)
+#target_link_libraries(coindesk poller curl)
 
 add_executable(socket_test
     raw/socket.cpp

@@ -69,12 +69,6 @@ auto requestAndStop( std::string rqst ) -> poller::Task<void> {
 }
 
 auto main( int argc, char** argv ) -> int {
-    auto req = poller::HttpRequest{
-        requests.at( RequestEndpointEnum::POSTMAN_ECHO_GET ), USER_AGENT };
-
-    // req.enableDebug();
-    httpRequestAsync( std::move( req ) );
-
     // req in moved-from state
     // httpRequestAsync( std::move( req ) );
 
@@ -102,8 +96,6 @@ auto main( int argc, char** argv ) -> int {
     requestAsync( requests.at( RequestEndpointEnum::POSTMAN_ECHO_GET ) );
 
     requestAsync( requests.at( RequestEndpointEnum::HTTPBIN_USERAGENT ) );
-
-    requestAsync( requests.at( RequestEndpointEnum::GSTATIC_GENERATE404 ) );
 
     requestAsync( requests.at( RequestEndpointEnum::COINDESK_CURENTPRICE ) );
 
