@@ -7,6 +7,7 @@ module;
 #include <string>
 #include <thread>
 #include <chrono>
+#include <vector>
 
 export module postman;
 
@@ -18,6 +19,7 @@ namespace postman {
 using namespace std::chrono_literals;
 
 #define KEEP_ALIVE true
+#define USER_AGENT "poller/0.2"
 
 const std::string POSTMAN_ECHO_GET = "https://postman-echo.com/get";
 const std::string POSTMAN_ECHO_GET_ARG_STRING =
@@ -43,6 +45,20 @@ export struct PostmanClient final {
 
         requestAsync( POSTMAN_ECHO_GET );
 
+        std::vector<poller::Task<poller::Result>> resps;
+        for ( int i = 0; i < 3; ++i ) {
+            auto resp = requestPromise( { POSTMAN_ECHO_GET, USER_AGENT } );
+
+            resps.emplace_back( std::move( resp ) );
+
+            std::print( "resp {} performed\n", i );
+        }
+
+        for ( auto&& prom : resps ) {
+            const auto [code, data] = prom.get();
+            std::print( "got code: {} body: {}\n", code, data );
+        }
+
         client_.run();
 
         // If client.run() not blocks then
@@ -61,7 +77,7 @@ private:
     }
 
     auto request() -> poller::Task<void> {
-        auto req = poller::HttpRequest{ POSTMAN_ECHO_GET, "agent 0.1" };
+        auto req = poller::HttpRequest{ POSTMAN_ECHO_GET, USER_AGENT };
 
         auto resp = co_await client_.requestAsyncVoid( std::move( req ) );
 
@@ -72,6 +88,12 @@ private:
         auto resp = co_await client_.requestAsyncVoid( rqst );
 
         std::println( "ready {} - {}", resp.code, resp.data );
+    }
+
+    [[nodiscard]] auto requestPromise( poller::HttpRequest&& rqst )
+        -> poller::Task<poller::Result> {
+        auto resp = co_await client_.requestAsyncPromise( std::move( rqst ) );
+        co_return resp;
     }
 
 private:

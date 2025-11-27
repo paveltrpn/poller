@@ -15,11 +15,6 @@ add_executable(io_timer
 )
 target_link_libraries(io_timer uv io)
 
-add_executable(http_client
-    http_client/http.cpp
-)
-target_link_libraries(http_client poller curl)
-
 add_executable(postman)
 target_sources(postman PUBLIC http_client/postman.cpp)
 target_sources(postman PUBLIC FILE_SET CXX_MODULES FILES http_client/postman.cppm)
