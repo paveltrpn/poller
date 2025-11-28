@@ -97,6 +97,10 @@ public:
                     }
                 }
 
+                if ( still_running == 0 ) {
+                    std::println( "no work" );
+                }
+
                 // curl poll
                 {
                     const auto res = curl_multi_poll( multiHandle_, nullptr, 0,
