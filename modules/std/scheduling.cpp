@@ -388,17 +388,17 @@ public:
         , queues_{ threads_count + 1 } {
         threads_.reserve( threads_count );
         for ( unsigned i = 0; i != threads_count; ++i ) {
-            threads_.emplace_back( [this, i] -> void { Run( i + 1 ); } );
+            threads_.emplace_back( [this, i] -> void { run( i + 1 ); } );
         }
     }
 
     ThreadPool( const ThreadPool& ) = delete;
     ThreadPool( ThreadPool&& ) = delete;
-    ThreadPool& operator=( const ThreadPool& ) = delete;
-    ThreadPool& operator=( ThreadPool&& ) = delete;
+    auto operator=( const ThreadPool& ) -> ThreadPool& = delete;
+    auto operator=( ThreadPool&& ) -> ThreadPool& = delete;
 
     ~ThreadPool() noexcept {
-        Wait();
+        wait();
         stop_.test_and_set();
         tasks_count_ += queues_count_;
         tasks_count_.notify_all();
@@ -426,10 +426,10 @@ public:
     template <typename FuncType,
               typename = std::enable_if_t<
                   std::convertible_to<FuncType, std::function<void()>>>>
-    void Submit( FuncType&& func ) {
+    auto submit( FuncType&& func ) -> void {
         auto* task = new Task( std::forward<FuncType>( func ) );
         task->delete_ = true;
-        Submit( task );
+        submit( task );
     }
 
     /**
@@ -443,7 +443,7 @@ public:
       *
       * \param task The task to execute.
       */
-    void Submit( Task* task ) {
+    auto submit( Task* task ) -> void {
         ++tasks_count_;
         queues_[index_].Push( task );
         tasks_count_.notify_one();
@@ -460,7 +460,7 @@ public:
       * \param tasks The tasks to execute.
       */
     template <typename TasksType>
-    void Submit( TasksType& tasks ) {
+    auto submit( TasksType& tasks ) -> void {
         for ( auto& task : tasks ) {
             task.is_root_ = task.total_predecessors_ == 0;
         }
@@ -485,10 +485,10 @@ public:
       * be continued.
       */
     template <typename PredicateType>
-    void Wait( const PredicateType& predicate ) {
+    auto wait( const PredicateType& predicate ) -> void {
         while ( !predicate() ) {
-            if ( auto* task = GetTask() ) {
-                Execute( task );
+            if ( auto* task = getTask() ) {
+                execute( task );
             }
         }
     }
@@ -499,22 +499,22 @@ public:
       * Other threads may push tasks into the task queues while the current thread
       * is blocked.
       */
-    void Wait() const {
+    auto wait() const -> void {
         while ( const auto count = tasks_count_.load() ) {
             tasks_count_.wait( count );
         }
     }
 
 private:
-    void Run( const unsigned i ) {
+    auto run( const unsigned i ) -> void {
         index_ = i;
         for ( auto attempts = 0;; ) {
             if ( constexpr auto max_attempts = 100;
                  ++attempts > max_attempts ) {
                 tasks_count_.wait( 0 );
             }
-            if ( auto* task = GetTask() ) {
-                Execute( task );
+            if ( auto* task = getTask() ) {
+                execute( task );
                 attempts = 0;
             } else if ( stop_.test() ) {
                 return;
@@ -522,7 +522,7 @@ private:
         }
     }
 
-    void Execute( Task* task ) {
+    auto execute( Task* task ) -> void {
         for ( Task* next = nullptr; task; next = nullptr ) {
             task->remaining_predecessors_.store( task->total_predecessors_ );
             if ( task->cancellation_flags_.fetch_or( kInvoked ) & kCancelled ) {
@@ -540,7 +540,7 @@ private:
             }
             for ( ; it != task->next_.end(); ++it ) {
                 if ( ( *it )->remaining_predecessors_.fetch_sub( 1 ) == 1 ) {
-                    Submit( *it );
+                    submit( *it );
                 }
             }
             if ( task->delete_ ) {
@@ -553,7 +553,7 @@ private:
         }
     }
 
-    Task* GetTask() {
+    auto getTask() -> Task* {
         const auto i = index_;
         auto* task = queues_[i].Pop();
         if ( task ) {
@@ -569,9 +569,12 @@ private:
     }
 
     static thread_local unsigned index_;
+
     const unsigned queues_count_;
+
     std::atomic_flag stop_;
     std::atomic<unsigned> tasks_count_;
+
     std::vector<std::thread> threads_;
     std::vector<WorkStealingDeque<Task*>> queues_;
 };

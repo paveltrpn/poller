@@ -72,7 +72,7 @@ public:
     auto operator=( Poller&& other ) -> Poller& = delete;
 
     ~Poller() {
-        worker_.Wait();
+        worker_.wait();
 
         // We already left curl multi loop.
         curl_multi_cleanup( multiHandle_ );
@@ -80,7 +80,7 @@ public:
     }
 
     auto submit() -> void {
-        worker_.Submit( [this]() -> void {
+        worker_.submit( [this]() -> void {
             int msgs_left{};
             int still_running{};
 
