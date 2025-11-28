@@ -57,6 +57,7 @@ export struct PostmanClient final {
         client_.submit();
 
         for ( auto&& prom : resps ) {
+            // Block until get() result!
             const auto [code, data] = prom.get();
             std::print( " ==== response code: {} body: {}\n", code, data );
         }
