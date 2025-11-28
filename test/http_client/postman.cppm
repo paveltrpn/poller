@@ -9,6 +9,8 @@ module;
 #include <chrono>
 #include <vector>
 
+#include <nlohmann/json.hpp>
+
 export module postman;
 
 import poller;
@@ -38,38 +40,29 @@ export struct PostmanClient final {
     ~PostmanClient() = default;
 
     auto run() -> void {
-        // auto coroHandle = getString();
-
         requestAsync( POSTMAN_ECHO_GET );
 
         requestAsync( POSTMAN_ECHO_GET_ARG_STRING );
 
-        requestAsync( POSTMAN_ECHO_GET_ARG_42 );
+        std::vector<poller::Task<poller::Result>> resps;
+        for ( int i = 0; i < 3; ++i ) {
+            auto resp =
+                requestPromise( { POSTMAN_ECHO_GET_ARG_42, USER_AGENT } );
+
+            resps.emplace_back( std::move( resp ) );
+
+            std::print( " === request {} performed\n", i );
+        }
 
         client_.submit();
 
-        // std::vector<poller::Task<poller::Result>> resps;
-        // for ( int i = 0; i < 3; ++i ) {
-        // auto resp = requestPromise( { POSTMAN_ECHO_GET, USER_AGENT } );
-        //
-        // resps.emplace_back( std::move( resp ) );
-        //
-        // std::print( "resp {} performed\n", i );
-        // }
-        //
-        // for ( auto&& prom : resps ) {
-        // const auto [code, data] = prom.get();
-        // std::print( "got code: {} body: {}\n", code, data );
-        // }
+        for ( auto&& prom : resps ) {
+            const auto [code, data] = prom.get();
+            std::print( " ==== response code: {} body: {}\n", code, data );
+        }
     }
 
 private:
-    [[nodiscard]]
-    auto getString() -> poller::Task<poller::Result> {
-        co_return co_await client_.requestAsyncPromise(
-            POSTMAN_ECHO_GET_ARG_STRING );
-    }
-
     auto requestAsync( std::string rqst ) -> poller::Task<void> {
         auto resp = co_await client_.requestAsyncVoid( rqst );
 
@@ -79,7 +72,19 @@ private:
     [[nodiscard]] auto requestPromise( poller::HttpRequest&& rqst )
         -> poller::Task<poller::Result> {
         auto resp = co_await client_.requestAsyncPromise( std::move( rqst ) );
-        co_return resp;
+
+        try {
+            const auto respJson = nlohmann::json::parse( resp.data );
+            co_return{ resp.code, respJson["args"]["arg"] };
+        } catch ( const nlohmann::json::parse_error& e ) {
+            std::println(
+                "config json parse error\n"
+                "message:\t{}\n"
+                "exception id:\t{}\n"
+                "byte position of error:\t{}\n",
+                e.what(), e.id, e.byte );
+            co_return{ 0, "0" };
+        }
     }
 
 private:
