@@ -225,8 +225,9 @@ public:
         -> RequestAwaitable<HttpRequest, Task<Result>>;
 
 private:
+#define LONELEY_THREAD 1
     // curl multi worker thread.
-    poller::thread::ThreadPool worker_{ 1 };
+    poller::thread::ThreadPool worker_{ LONELEY_THREAD };
 
     // Main curl handle
     CURLM* multiHandle_;
