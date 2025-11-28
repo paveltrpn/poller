@@ -33,7 +33,7 @@ target_link_libraries(gstatic poller curl)
 add_executable(coindesk)
 target_sources(coindesk PUBLIC http_client/coindesk.cpp)
 target_sources(coindesk PUBLIC FILE_SET CXX_MODULES FILES http_client/coindesk.cppm)
-target_link_libraries(coindesk poller curl)
+target_link_libraries(coindesk  poller curl)
 
 add_executable(socket_test
     raw/socket.cpp

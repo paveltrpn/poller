@@ -11,7 +11,7 @@ module;
 
 export module poller_std:scheduling;
 
-namespace poller {
+namespace poller::thread {
 
 constexpr auto kCancelled = 1;
 constexpr auto kInvoked = 1 << 1;
@@ -578,4 +578,4 @@ private:
 
 inline thread_local unsigned ThreadPool::index_{ 0 };
 
-}  // namespace poller
+}  // namespace poller::thread

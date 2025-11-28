@@ -17,8 +17,6 @@ namespace coindesk {
 
 using namespace std::chrono_literals;
 
-#define KEEP_ALIVE true
-
 const std::string COINDESK_CURENTPRICE =
     "https://api.coindesk.com/v1/bpi/currentprice.json";
 
@@ -37,12 +35,7 @@ export struct CoindeskClient final {
         //
         requestAsync( COINDESK_CURENTPRICE );
 
-        client_.run();
-
-        if ( KEEP_ALIVE ) {
-            std::println( "=== wait for responses..." );
-            std::this_thread::sleep_for( 5000ms );
-        }
+        client_.submit();
     }
 
 private:
@@ -52,7 +45,7 @@ private:
     }
 
 private:
-    poller::Poller client_{ KEEP_ALIVE };
+    poller::Poller client_{};
 };
 
 }  // namespace coindesk

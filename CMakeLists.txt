@@ -48,7 +48,7 @@ target_sources(poller
     FILE_SET CXX_MODULES FILES
     ${MOD_POLLER_SRC}
 )
-target_link_libraries(poller coro)
+target_link_libraries(poller poller_std coro)
 
 # Module poller_std
 # ================================

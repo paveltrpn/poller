@@ -15,6 +15,7 @@ module;
 export module poller:poller;
 
 import coro;
+import poller_std;
 
 import :request;
 import :handle;
@@ -47,8 +48,7 @@ struct RequestAwaitable;
 
 export struct Poller {
 public:
-    Poller( bool keepAlive )
-        : keepAlive_{ keepAlive } {
+    Poller() {
         // Curl global init.
         {
             const auto res = curl_global_init( CURL_GLOBAL_DEFAULT );
@@ -64,154 +64,97 @@ public:
             std::println( "can't create curl multi handle" );
             throw std::runtime_error( "curl_multi_init failed" );
         }
-
-        worker_ = std::make_unique<std::jthread>(
-            [this]( std::stop_token st ) -> void {
-                // If keepAlive == true then we go directly in curl poll loop and
-                // spin in it until Poller object destructor or explicit stop() call.
-                // Else main thread must explicitly call run() to start curl multi loop and
-                // blocks in it untill all penditg requests complete.
-                if ( !keepAlive_ ) {
-                    std::unique_lock<std::mutex> lk{ m_ };
-                    cv_.wait( lk, [this]() -> bool {
-                        //
-                        return run_;
-                    } );
-                }
-
-                int msgs_left{};
-                int still_running{};
-
-                do {
-                    // Stop curl thread by request.
-                    if ( st.stop_requested() ) {
-                        break;
-                    }
-
-                    // curl perform
-                    {
-                        const auto res =
-                            curl_multi_perform( multiHandle_, &still_running );
-
-                        if ( res != CURLM_OK ) {
-                            std::println( "curl_multi_perform failed, code {}",
-                                          curl_multi_strerror( res ) );
-                            break;
-                        }
-                    }
-
-                    // curl poll
-                    {
-                        const auto res = curl_multi_poll( multiHandle_, nullptr,
-                                                          0, 1000, nullptr );
-
-                        if ( res != CURLM_OK ) {
-                            std::println( "curl_multi_poll failed, code {}",
-                                          curl_multi_strerror( res ) );
-                            break;
-                        }
-                    }
-
-                    CURLMsg* msg{};
-                    do {
-                        msg = curl_multi_info_read( multiHandle_, &msgs_left );
-                        if ( msg && ( msg->msg == CURLMSG_DONE ) ) {
-                            CURL* handle = msg->easy_handle;
-
-                            long code{};
-                            {
-                                const auto res = curl_easy_getinfo(
-                                    handle, CURLINFO_RESPONSE_CODE, &code );
-                                if ( res != CURLE_OK ) {
-                                    std::println(
-                                        "curl_easy_getinfo failed, code {}\n",
-                                        curl_easy_strerror( res ) );
-                                }
-                            }
-
-                            auto requestPtr = (Request*){};
-                            {
-                                auto privatePtr = (void*){};
-                                const auto res = curl_easy_getinfo(
-                                    handle, CURLINFO_PRIVATE, &privatePtr );
-
-                                if ( res != CURLE_OK ) {
-                                    std::println(
-                                        "curl_easy_getinfo failed, code {}\n",
-                                        curl_easy_strerror( res ) );
-                                }
-
-                                requestPtr =
-                                    reinterpret_cast<Request*>( privatePtr );
-                            }
-
-                            requestPtr->callback(
-                                { code, std::move( requestPtr->buffer ) } );
-
-                            curl_multi_remove_handle( multiHandle_, handle );
-                            curl_easy_cleanup( handle );
-
-                            // Delete manually allocated data.
-                            delete requestPtr;
-                        }
-                    } while ( msg );
-                } while ( keepAlive_ || still_running );
-            },
-            ss_.get_token() );
-
-        // keepAlive_ means curl thread needs be detached.
-        if ( keepAlive_ ) {
-            worker_->detach();
-        }
-    }
-
-    ~Poller() {
-        // Curl thread must not outlive this object.
-        // If keepAlive_ initially set to true then
-        // curl loop thread is detached and we must explicitely
-        // ask to stop it.
-        if ( keepAlive_ ) {
-            stop();
-        }
-
-        curl_multi_cleanup( multiHandle_ );
-        curl_global_cleanup();
-    }
-
-    // Manually start curl multi handle loop thread and block,
-    // or noop on keeped alive detached thread.
-    //
-    // If poller initialized with keepAlive == false then
-    // caller thread will be blocked on this call until
-    // all pending requests will be performed. Else means
-    // curl thread already detached and will be stopped
-    // in destructor of this object or by explicit call stop().
-    auto run() -> void {
-        if ( !keepAlive_ ) {
-            // Start curl thread
-            {
-                std::lock_guard<std::mutex> _{ m_ };
-                run_ = true;
-            }
-            cv_.notify_one();
-
-            // Lock caller thread until curl multi handle loop finished,
-            // or no op on detached thread.
-            worker_->join();
-        }
-    }
-
-    auto stop() -> void {
-        // Wekaup multi poll when he sleeps on timeout.
-        curl_multi_wakeup( multiHandle_ );
-        // Stop curl loop thread.
-        ss_.request_stop();
     }
 
     Poller( const Poller& other ) = delete;
     Poller( Poller&& other ) = delete;
     auto operator=( const Poller& other ) -> Poller& = delete;
     auto operator=( Poller&& other ) -> Poller& = delete;
+
+    ~Poller() {
+        worker_.Wait();
+
+        // We already left curl multi loop.
+        curl_multi_cleanup( multiHandle_ );
+        curl_global_cleanup();
+    }
+
+    auto submit() -> void {
+        worker_.Submit( [this]() -> void {
+            int msgs_left{};
+            int still_running{};
+
+            do {
+                // curl perform
+                {
+                    const auto res =
+                        curl_multi_perform( multiHandle_, &still_running );
+
+                    if ( res != CURLM_OK ) {
+                        std::println( "curl_multi_perform failed, code {}",
+                                      curl_multi_strerror( res ) );
+                        break;
+                    }
+                }
+
+                // curl poll
+                {
+                    const auto res = curl_multi_poll( multiHandle_, nullptr, 0,
+                                                      1000, nullptr );
+
+                    if ( res != CURLM_OK ) {
+                        std::println( "curl_multi_poll failed, code {}",
+                                      curl_multi_strerror( res ) );
+                        break;
+                    }
+                }
+
+                CURLMsg* msg{};
+                do {
+                    msg = curl_multi_info_read( multiHandle_, &msgs_left );
+                    if ( msg && ( msg->msg == CURLMSG_DONE ) ) {
+                        CURL* handle = msg->easy_handle;
+
+                        long code{};
+                        {
+                            const auto res = curl_easy_getinfo(
+                                handle, CURLINFO_RESPONSE_CODE, &code );
+                            if ( res != CURLE_OK ) {
+                                std::println(
+                                    "curl_easy_getinfo failed, code {}\n",
+                                    curl_easy_strerror( res ) );
+                            }
+                        }
+
+                        auto requestPtr = (Request*){};
+                        {
+                            auto privatePtr = (void*){};
+                            const auto res = curl_easy_getinfo(
+                                handle, CURLINFO_PRIVATE, &privatePtr );
+
+                            if ( res != CURLE_OK ) {
+                                std::println(
+                                    "curl_easy_getinfo failed, code {}\n",
+                                    curl_easy_strerror( res ) );
+                            }
+
+                            requestPtr =
+                                reinterpret_cast<Request*>( privatePtr );
+                        }
+
+                        requestPtr->callback(
+                            { code, std::move( requestPtr->buffer ) } );
+
+                        curl_multi_remove_handle( multiHandle_, handle );
+                        curl_easy_cleanup( handle );
+
+                        // Delete manually allocated data.
+                        delete requestPtr;
+                    }
+                } while ( msg );
+            } while ( still_running );
+        } );
+    }
 
     auto performRequest( const HttpRequest& request, CallbackFn cb )
         -> void = delete;
@@ -256,6 +199,9 @@ public:
 
             // Is this thrad safe to add easy handle to multi
             // when multi handle performing loop cuntinues???
+            //
+            // "You can add more easy handles to a multi handle at any
+            // point, even if other transfers are already running"
             curl_multi_add_handle( multiHandle_, request );
         } else {
             std::println( "poller request not performed, request is invalid!" );
@@ -276,19 +222,10 @@ public:
 
 private:
     // curl multi worker thread.
-    std::unique_ptr<std::jthread> worker_;
-    std::stop_source ss_;
-
-    // Initial startup holders.
-    std::mutex m_;
-    std::condition_variable cv_;
-    bool run_;
+    poller::thread::ThreadPool worker_{ 1 };
 
     // Main curl handle
     CURLM* multiHandle_;
-
-    // Keep curl loop alive after all messages polling done.
-    std::atomic<bool> keepAlive_{ false };
 };
 
 export template <typename T, typename U>

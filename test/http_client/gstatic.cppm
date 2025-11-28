@@ -16,8 +16,6 @@ namespace gstatic {
 
 using namespace std::chrono_literals;
 
-#define KEEP_ALIVE true
-
 const std::string GSTATIC_GENERATE404 = "http://www.gstatic.com/generate_204";
 
 export struct GstaticClient final {
@@ -35,12 +33,7 @@ export struct GstaticClient final {
         //
         requestAsync( GSTATIC_GENERATE404 );
 
-        client_.run();
-
-        if ( KEEP_ALIVE ) {
-            std::println( "=== wait for responses..." );
-            std::this_thread::sleep_for( 5000ms );
-        }
+        client_.submit();
     }
 
 private:
@@ -50,7 +43,7 @@ private:
     }
 
 private:
-    poller::Poller client_{ KEEP_ALIVE };
+    poller::Poller client_{};
 };
 
 }  // namespace gstatic

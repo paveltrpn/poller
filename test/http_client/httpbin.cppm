@@ -17,8 +17,6 @@ namespace httpbin {
 
 using namespace std::chrono_literals;
 
-#define KEEP_ALIVE true
-
 const std::string HTTPBIN_USERAGENT = "http://httpbin.org/user-agent";
 
 export struct HttpbinClient final {
@@ -36,12 +34,7 @@ export struct HttpbinClient final {
         //
         requestAsync( HTTPBIN_USERAGENT );
 
-        client_.run();
-
-        if ( KEEP_ALIVE ) {
-            std::println( "=== wait for responses..." );
-            std::this_thread::sleep_for( 5000ms );
-        }
+        client_.submit();
     }
 
 private:
@@ -51,7 +44,7 @@ private:
     }
 
 private:
-    poller::Poller client_{ KEEP_ALIVE };
+    poller::Poller client_{};
 };
 
 }  // namespace httpbin

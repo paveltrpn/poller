@@ -18,7 +18,6 @@ namespace postman {
 
 using namespace std::chrono_literals;
 
-#define KEEP_ALIVE true
 #define USER_AGENT "poller/0.2"
 
 const std::string POSTMAN_ECHO_GET = "https://postman-echo.com/get";
@@ -39,34 +38,29 @@ export struct PostmanClient final {
     ~PostmanClient() = default;
 
     auto run() -> void {
-        auto coroHandle = getString();
-
-        request();
+        // auto coroHandle = getString();
 
         requestAsync( POSTMAN_ECHO_GET );
 
-        std::vector<poller::Task<poller::Result>> resps;
-        for ( int i = 0; i < 3; ++i ) {
-            auto resp = requestPromise( { POSTMAN_ECHO_GET, USER_AGENT } );
+        requestAsync( POSTMAN_ECHO_GET_ARG_STRING );
 
-            resps.emplace_back( std::move( resp ) );
+        requestAsync( POSTMAN_ECHO_GET_ARG_42 );
 
-            std::print( "resp {} performed\n", i );
-        }
+        client_.submit();
 
-        for ( auto&& prom : resps ) {
-            const auto [code, data] = prom.get();
-            std::print( "got code: {} body: {}\n", code, data );
-        }
-
-        client_.run();
-
-        // If client.run() not blocks then
-        // wait some time until pending requests done.
-        if ( KEEP_ALIVE ) {
-            std::println( "=== wait for responses..." );
-            std::this_thread::sleep_for( 5000ms );
-        }
+        // std::vector<poller::Task<poller::Result>> resps;
+        // for ( int i = 0; i < 3; ++i ) {
+        // auto resp = requestPromise( { POSTMAN_ECHO_GET, USER_AGENT } );
+        //
+        // resps.emplace_back( std::move( resp ) );
+        //
+        // std::print( "resp {} performed\n", i );
+        // }
+        //
+        // for ( auto&& prom : resps ) {
+        // const auto [code, data] = prom.get();
+        // std::print( "got code: {} body: {}\n", code, data );
+        // }
     }
 
 private:
@@ -74,14 +68,6 @@ private:
     auto getString() -> poller::Task<poller::Result> {
         co_return co_await client_.requestAsyncPromise(
             POSTMAN_ECHO_GET_ARG_STRING );
-    }
-
-    auto request() -> poller::Task<void> {
-        auto req = poller::HttpRequest{ POSTMAN_ECHO_GET, USER_AGENT };
-
-        auto resp = co_await client_.requestAsyncVoid( std::move( req ) );
-
-        std::println( "ready: {} - {}", resp.code, resp.data );
     }
 
     auto requestAsync( std::string rqst ) -> poller::Task<void> {
@@ -97,7 +83,7 @@ private:
     }
 
 private:
-    poller::Poller client_{ KEEP_ALIVE };
+    poller::Poller client_{};
 };
 
 }  // namespace postman
