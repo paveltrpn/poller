@@ -40,10 +40,7 @@ auto formattedFields(
 }
 
 export struct HttpRequest {
-    HttpRequest( const std::string& url, const std::string& userAgent ) {
-        handle_.setopt<CURLOPT_URL>( url );
-        handle_.setopt<CURLOPT_USERAGENT>( userAgent );
-    };
+    HttpRequest() = default;
 
     HttpRequest( const HttpRequest& other ) = delete;
 
@@ -61,6 +58,11 @@ export struct HttpRequest {
             handle_ = std::move( other.handle_ );
         }
         return *this;
+    }
+
+    auto setUrl( const std::string& value ) -> HttpRequest& {
+        handle_.setopt<CURLOPT_URL>( value );
+        return ( *this );
     }
 
     auto isValid() -> bool {
@@ -83,21 +85,46 @@ export struct HttpRequest {
         handle_.enableDebug();
     }
 
-private:
+protected:
     Handle handle_;
 };
 
 export struct HttpRequestGet final : HttpRequest {
-    HttpRequestGet( const std::string& url, const std::string& userAgent )
-        : HttpRequest( url, userAgent ) {}
+    HttpRequestGet()
+        : HttpRequest() {
+        handle_.setopt<CURLOPT_HTTPGET>( 1l );
+    }
 };
 
-export struct HttpRequestPost final : HttpRequest {};
+export struct HttpRequestPost final : HttpRequest {
+    HttpRequestPost()
+        : HttpRequest() {
+        handle_.setopt<CURLOPT_POST>( 1l );
+    }
 
-export struct HttpRequestDelete final : HttpRequest {};
+    // Example value:
+    // "name=value&anotherkey=anothervalue"
+    auto setPostfields( const std::string& value ) -> HttpRequestPost& {
+        handle_.setopt<CURLOPT_POSTFIELDS>( value );
+        handle_.setopt<CURLOPT_POSTFIELDSIZE>(
+            static_cast<long>( value.length() ) );
 
-export struct HttpRequestPatch final : HttpRequest {};
+        return ( *this );
+    }
+};
 
-export struct HttpRequestPut final : HttpRequest {};
+export struct HttpRequestDelete final : HttpRequest {
+    HttpRequestDelete()
+        : HttpRequest() {
+        handle_.setopt<CURLOPT_HTTPGET>( 1l );
+    }
+};
+
+export struct HttpRequestPut final : HttpRequest {
+    HttpRequestPut()
+        : HttpRequest() {
+        handle_.setopt<CURLOPT_HTTPGET>( 1l );
+    }
+};
 
 }  // namespace poller

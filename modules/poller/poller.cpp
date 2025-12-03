@@ -46,6 +46,8 @@ export struct Request {
 export template <typename T, typename U>
 struct RequestAwaitable;
 
+#define POLLER_USERAGNET_STRING "poller/0.1"
+
 export struct Poller {
 public:
     Poller() {
@@ -168,9 +170,11 @@ public:
 
     void performRequest( const std::string& url, CallbackFn cb ) {
         auto requestPtr = new Request{ std::move( cb ), {} };
+
         poller::Handle handle;
+
         handle.setopt<CURLOPT_URL>( url );
-        handle.setopt<CURLOPT_USERAGENT>( "poller/0.1" );
+        handle.setopt<CURLOPT_USERAGENT>( POLLER_USERAGNET_STRING );
         handle.setopt<CURLOPT_WRITEFUNCTION>( writeToRequest );
         handle.setopt<CURLOPT_WRITEDATA>( requestPtr );
         handle.setopt<CURLOPT_PRIVATE>( requestPtr );
@@ -197,6 +201,8 @@ public:
             // Allocate Requset data. Delete after curl perform actions.
             auto requestPtr = new Request{ std::move( cb ), {} };
 
+            request.handle().setopt<CURLOPT_USERAGENT>(
+                POLLER_USERAGNET_STRING );
             request.handle().setopt<CURLOPT_WRITEFUNCTION>( writeToRequest );
             request.handle().setopt<CURLOPT_WRITEDATA>( requestPtr );
             request.handle().setopt<CURLOPT_PRIVATE>( requestPtr );

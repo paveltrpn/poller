@@ -46,8 +46,11 @@ export struct PostmanClient final {
 
         std::vector<poller::Task<poller::Result>> resps;
         for ( int i = 0; i < 10; ++i ) {
-            auto resp =
-                requestPromise( { POSTMAN_ECHO_GET_ARG_42, USER_AGENT } );
+            auto req = poller::HttpRequest{};
+
+            req.setUrl( POSTMAN_ECHO_GET_ARG_42 );
+
+            auto resp = requestPromise( std::move( req ) );
 
             resps.emplace_back( std::move( resp ) );
 

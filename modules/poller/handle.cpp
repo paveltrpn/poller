@@ -42,7 +42,7 @@ concept CurlOptLong =
     ( Opt == CURLOPT_MIMEPOST ) ||  // HTTP POST, use instead
     // ( Opt == CURLOPT_PUT ) ||       // HTTP PUT, deprecated
     ( Opt == CURLOPT_UPLOAD ) ||  // HTTP PUT, use instead
-    ( Opt == CURLOPT_MIME_OPTIONS );
+    ( Opt == CURLOPT_MIME_OPTIONS ) || ( Opt == CURLOPT_POSTFIELDSIZE );
 
 template <CURLoption Opt>
 concept CurlOptSList =
