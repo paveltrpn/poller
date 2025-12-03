@@ -9,12 +9,12 @@ module;
 
 export module poller:poller;
 
-import coro;
 import poller_std;
 
 import :request;
 import :handle;
 import :write_func;
+import :task;
 
 namespace poller {
 

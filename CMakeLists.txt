@@ -48,7 +48,7 @@ target_sources(poller
     FILE_SET CXX_MODULES FILES
     ${MOD_POLLER_SRC}
 )
-target_link_libraries(poller poller_std coro)
+target_link_libraries(poller poller_std)
 
 # Module poller_std
 # ================================
@@ -60,17 +60,6 @@ target_sources(poller_std
     ${MOD_STD_SRC}
 )
 
-# Module io
-# ================================
-file(GLOB MOD_IO_SRC modules/io/*.cpp)
-add_library(io)
-target_sources(io
-  PUBLIC
-    FILE_SET CXX_MODULES FILES
-    ${MOD_IO_SRC}
-)
-target_link_libraries(io poller_std coro)
-
 # Module raw
 # ================================
 file(GLOB MOD_RAW_SRC modules/raw/*.cpp)
@@ -79,16 +68,6 @@ target_sources(raw
   PUBLIC
     FILE_SET CXX_MODULES FILES
     ${MOD_RAW_SRC}
-)
-
-# Module coro
-# ================================
-file(GLOB MOD_CORO_SRC modules/coro/*.cpp)
-add_library(coro)
-target_sources(coro
-  PUBLIC
-    FILE_SET CXX_MODULES FILES
-    ${MOD_CORO_SRC}
 )
 
 add_subdirectory(test)

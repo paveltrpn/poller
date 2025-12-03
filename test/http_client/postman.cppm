@@ -14,7 +14,6 @@ module;
 export module postman;
 
 import poller;
-import coro;
 
 namespace postman {
 

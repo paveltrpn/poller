@@ -11,7 +11,6 @@ module;
 export module httpbin;
 
 import poller;
-import coro;
 
 namespace httpbin {
 
