@@ -89,7 +89,7 @@ private:
 
         try {
             const auto respJson = nlohmann::json::parse( resp.data );
-            co_return{ resp.code, respJson["args"]["arg"] };
+            co_return{ resp.code, respJson["args"]["arg"], "NO HEADERS" };
         } catch ( const nlohmann::json::parse_error& e ) {
             std::println(
                 "json parse error\n"
@@ -97,7 +97,7 @@ private:
                 "exception id:\t{}\n"
                 "byte position of error:\t{}\n",
                 e.what(), e.id, e.byte );
-            co_return{ 0, "0" };
+            co_return{ 0, "NO DATA", "NO HEADERS" };
         }
     }
 };
