@@ -1,11 +1,6 @@
 module;
 
-#include <atomic>
-#include <mutex>
-#include <condition_variable>
-#include <stop_token>
 #include <string>
-#include <thread>
 #include <print>
 #include <coroutine>
 #include <functional>
@@ -30,11 +25,25 @@ export struct Request {
     std::string buffer;
 };
 
-[[maybe_unused]] auto writeToRequest( char* ptr, size_t, size_t nmemb,
-                                      void* tab ) -> size_t {
+[[maybe_unused]] auto writeCallback( char* ptr, size_t, size_t nmemb,
+                                     void* tab ) -> size_t {
     auto r = reinterpret_cast<Request*>( tab );
     r->buffer.append( ptr, nmemb );
     return nmemb;
+}
+
+struct HeaderInfo {
+    int shoesize;
+    char* secret;
+};
+
+auto headerCallback( char* buffer, size_t size, size_t nitems, void* userdata )
+    -> size_t {
+    auto* i = static_cast<HeaderInfo*>( userdata );
+    std::println( "shoe size: {}\n", i->shoesize );
+    /* now this callback can access the my_info struct */
+
+    return nitems * size;
 }
 
 [[maybe_unused]] auto fillRequest( char* ptr, size_t, size_t nmemb,
@@ -171,20 +180,15 @@ public:
 
         handle.setopt<CURLOPT_URL>( url );
         handle.setopt<CURLOPT_USERAGENT>( POLLER_USERAGNET_STRING );
-        handle.setopt<CURLOPT_WRITEFUNCTION>( writeToRequest );
+        handle.setopt<CURLOPT_WRITEFUNCTION>( writeCallback );
         handle.setopt<CURLOPT_WRITEDATA>( requestPtr );
         handle.setopt<CURLOPT_PRIVATE>( requestPtr );
-        handle.setopt<CURLOPT_HEADER>( 1l );
 
-        // POST parameters
-        // curl_easy_setopt(curl, CURLOPT_POST,#include <coroutine> 1);
-        // const char *urlPOST = "login=ИМЯ&password=ПАСС&cmd=login";
-        // curl_easy_setopt(curl, CURLOPT_POSTFIELDS, urlPOST);
+        // handle.setopt<CURLOPT_HEADER>( 1l );
 
         // GET
         // curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
         // curl_easy_setopt(curl, CURLOPT_USERPWD, "user:pass");
-        // curl_easy_setopt(curl, CURLOPT_USERAGENT, "curl/7.42.0");
         // curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
         // curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
         // curl_easy_setopt(curl, CURLOPT_HEADERDATA, &header_string);
@@ -207,7 +211,7 @@ public:
             // this callback gets called many times and each invoke delivers
             // another chunk of data. ptr points to the delivered data, and
             // the size of that data is nmemb; size is always 1.
-            request.handle().setopt<CURLOPT_WRITEFUNCTION>( writeToRequest );
+            request.handle().setopt<CURLOPT_WRITEFUNCTION>( writeCallback );
 
             // If you use the CURLOPT_WRITEFUNCTION option, this is the pointer you
             // get in that callback's fourth and last argument. If you do not use a
@@ -217,6 +221,10 @@ public:
 
             // Pointing to data that should be associated with this curl handle
             request.handle().setopt<CURLOPT_PRIVATE>( requestPtr );
+
+            // request.handle().setopt<CURLOPT_HEADERFUNCTION>( headerCallback );
+            // HeaderInfo* foo;
+            // request.handle().setopt<CURLOPT_HEADERDATA>( foo );
 
             // Ask libcurl to include the headers in the write callback (CURLOPT_WRITEFUNCTION).
             // This option is relevant for protocols that actually have headers

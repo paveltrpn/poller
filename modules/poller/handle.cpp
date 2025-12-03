@@ -20,18 +20,19 @@ concept CurlObjectType = std::is_class_v<std::remove_pointer_t<T>>;
 
 template <CURLoption Opt>
 concept CurlOptCallable =
-    ( Opt == CURLOPT_WRITEFUNCTION ) || ( Opt == CURLOPT_READFUNCTION );
+    ( Opt == CURLOPT_WRITEFUNCTION ) || ( Opt == CURLOPT_READFUNCTION ) ||
+    ( Opt == CURLOPT_HEADERFUNCTION );
 
 template <CURLoption Opt>
 concept CurlOptObject =
-    ( Opt == CURLOPT_WRITEDATA ) || ( Opt == CURLOPT_PRIVATE );
+    ( Opt == CURLOPT_WRITEDATA ) || ( Opt == CURLOPT_PRIVATE ) ||
+    ( Opt == CURLOPT_HEADERDATA );
 
 template <CURLoption Opt>
 concept CurlOptString =
     ( Opt == CURLOPT_URL ) || ( Opt == CURLOPT_USERAGENT ) ||
     ( Opt == CURLOPT_POSTFIELDS ) || ( Opt == CURLOPT_COPYPOSTFIELDS ) ||
-    ( Opt == CURLOPT_USERPWD ) || ( Opt == CURLOPT_HEADERDATA ) ||
-    ( Opt == CURLOPT_CUSTOMREQUEST );
+    ( Opt == CURLOPT_USERPWD ) || ( Opt == CURLOPT_CUSTOMREQUEST );
 
 template <CURLoption Opt>
 concept CurlOptLong =
