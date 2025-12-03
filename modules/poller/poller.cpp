@@ -75,14 +75,14 @@ public:
 protected:
     auto submit() -> void {
         worker_.submit( [this]() -> void {
-            int msgs_left{};
-            int still_running{};
+            int msgsLeft{};
+            int stillRunning{};
 
             do {
-                // curl perform
+                // Curl perform.
                 {
                     const auto res =
-                        curl_multi_perform( multiHandle_, &still_running );
+                        curl_multi_perform( multiHandle_, &stillRunning );
 
                     if ( res != CURLM_OK ) {
                         std::println( "curl_multi_perform failed, code {}",
@@ -91,10 +91,12 @@ protected:
                     }
                 }
 
-                // curl poll
+                // Curl poll.
                 {
-                    const auto res = curl_multi_poll( multiHandle_, nullptr, 0,
-                                                      1000, nullptr );
+// TODO: make it part of public api.
+#define MULTI_POLL_TIMEOUT 1000
+                    const auto res = curl_multi_poll(
+                        multiHandle_, nullptr, 0, MULTI_POLL_TIMEOUT, nullptr );
 
                     if ( res != CURLM_OK ) {
                         std::println( "curl_multi_poll failed, code {}",
@@ -105,7 +107,7 @@ protected:
 
                 CURLMsg* msg{};
                 do {
-                    msg = curl_multi_info_read( multiHandle_, &msgs_left );
+                    msg = curl_multi_info_read( multiHandle_, &msgsLeft );
                     if ( msg && ( msg->msg == CURLMSG_DONE ) ) {
                         CURL* handle = msg->easy_handle;
 
@@ -144,7 +146,7 @@ protected:
                         curl_easy_cleanup( handle );
                     }
                 } while ( msg );
-            } while ( still_running );
+            } while ( stillRunning );
         } );
     }
 
