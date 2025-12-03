@@ -58,6 +58,21 @@ public:
         curl_global_cleanup();
     }
 
+    auto requestAsyncVoid( std::string url )
+        -> RequestAwaitable<std::string, Task<void>>;
+
+    auto requestAsyncPromise( std::string url )
+        -> RequestAwaitable<std::string, Task<Result>>;
+
+    auto requestAsyncVoid( HttpRequest&& request )
+        -> RequestAwaitable<HttpRequest, Task<void>>;
+
+    auto requestAsyncPromise( HttpRequest&& request )
+        -> RequestAwaitable<HttpRequest, Task<Result>>;
+
+    virtual auto run() -> void = 0;
+
+protected:
     auto submit() -> void {
         worker_.submit( [this]() -> void {
             int msgs_left{};
@@ -133,6 +148,7 @@ public:
         } );
     }
 
+private:
     auto performRequest( const HttpRequest& request, CallbackFn cb )
         -> void = delete;
 
@@ -217,18 +233,6 @@ public:
         }
     }
 
-    auto requestAsyncVoid( std::string url )
-        -> RequestAwaitable<std::string, Task<void>>;
-
-    auto requestAsyncPromise( std::string url )
-        -> RequestAwaitable<std::string, Task<Result>>;
-
-    auto requestAsyncVoid( HttpRequest&& request )
-        -> RequestAwaitable<HttpRequest, Task<void>>;
-
-    auto requestAsyncPromise( HttpRequest&& request )
-        -> RequestAwaitable<HttpRequest, Task<Result>>;
-
 private:
 #define LONELEY_THREAD 1
     // curl multi worker thread.
@@ -236,6 +240,9 @@ private:
 
     // Main curl handle
     CURLM* multiHandle_;
+
+    template <typename T, typename U>
+    friend struct RequestAwaitable;
 };
 
 export template <typename T, typename U>

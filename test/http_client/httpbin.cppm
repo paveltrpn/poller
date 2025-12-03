@@ -20,7 +20,7 @@ const std::string HTTPBIN_USERAGENT = "http://httpbin.org/user-agent";
 const std::string HTTPBIN_IP = "http://httpbin.org/ip";
 const std::string HTTPBIN_HEADERS = "http://httpbin.org/headers";
 
-export struct HttpbinClient final {
+export struct HttpbinClient final : poller::Poller {
     HttpbinClient() = default;
 
     HttpbinClient( const HttpbinClient& other ) = delete;
@@ -31,8 +31,7 @@ export struct HttpbinClient final {
 
     ~HttpbinClient() = default;
 
-    auto run() -> void {
-        //
+    auto run() -> void override {
         requestAsync( HTTPBIN_USERAGENT );
 
         {
@@ -57,12 +56,12 @@ export struct HttpbinClient final {
             requestAsync( std::move( req ) );
         }
 
-        client_.submit();
+        submit();
     }
 
 private:
     auto requestAsync( std::string rqst ) -> poller::Task<void> {
-        auto resp = co_await client_.requestAsyncVoid( rqst );
+        auto resp = co_await requestAsyncVoid( rqst );
 
         const auto [code, data, headers] = resp;
 
@@ -71,16 +70,13 @@ private:
     }
 
     auto requestAsync( poller::HttpRequest&& req ) -> poller::Task<void> {
-        auto resp = co_await client_.requestAsyncVoid( std::move( req ) );
+        auto resp = co_await requestAsyncVoid( std::move( req ) );
 
         const auto [code, data, headers] = resp;
 
         std::println( "response code: {}\ndata:\n{}\nheaders:\n{}", code, data,
                       headers );
     }
-
-private:
-    poller::Poller client_{};
 };
 
 }  // namespace httpbin

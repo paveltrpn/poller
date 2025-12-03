@@ -27,7 +27,7 @@ const std::string POSTMAN_ECHO_GET_ARG_STRING =
 const std::string POSTMAN_ECHO_GET_ARG_42 =
     "https://postman-echo.com/get?arg=42";
 
-export struct PostmanClient final {
+export struct PostmanClient final : poller::Poller {
     PostmanClient() = default;
 
     PostmanClient( const PostmanClient& other ) = delete;
@@ -64,7 +64,7 @@ export struct PostmanClient final {
             std::print( " === request {} performed\n", i );
         }
 
-        client_.submit();
+        submit();
 
         for ( auto&& prom : resps ) {
             // Block until get() result!
@@ -75,7 +75,7 @@ export struct PostmanClient final {
 
 private:
     auto requestAsync( poller::HttpRequest&& req ) -> poller::Task<void> {
-        auto resp = co_await client_.requestAsyncVoid( std::move( req ) );
+        auto resp = co_await requestAsyncVoid( std::move( req ) );
 
         const auto [code, data, headers] = resp;
 
@@ -85,7 +85,7 @@ private:
 
     [[nodiscard]] auto requestPromise( poller::HttpRequest&& rqst )
         -> poller::Task<poller::Result> {
-        auto resp = co_await client_.requestAsyncPromise( std::move( rqst ) );
+        auto resp = co_await requestAsyncPromise( std::move( rqst ) );
 
         try {
             const auto respJson = nlohmann::json::parse( resp.data );
@@ -100,9 +100,6 @@ private:
             co_return{ 0, "0" };
         }
     }
-
-private:
-    poller::Poller client_{};
 };
 
 }  // namespace postman
