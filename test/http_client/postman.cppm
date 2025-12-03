@@ -40,9 +40,17 @@ export struct PostmanClient final {
     ~PostmanClient() = default;
 
     auto run() -> void {
-        requestAsync( POSTMAN_ECHO_GET );
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( POSTMAN_ECHO_GET );
+            requestAsync( std::move( req ) );
+        }
 
-        requestAsync( POSTMAN_ECHO_GET_ARG_STRING );
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( POSTMAN_ECHO_GET_ARG_STRING );
+            requestAsync( std::move( req ) );
+        }
 
         std::vector<poller::Task<poller::Result>> resps;
         for ( int i = 0; i < 10; ++i ) {
@@ -67,8 +75,8 @@ export struct PostmanClient final {
     }
 
 private:
-    auto requestAsync( std::string rqst ) -> poller::Task<void> {
-        auto resp = co_await client_.requestAsyncVoid( rqst );
+    auto requestAsync( poller::HttpRequest&& req ) -> poller::Task<void> {
+        auto resp = co_await client_.requestAsyncVoid( std::move( req ) );
 
         std::println( "ready {} - {}", resp.code, resp.data );
     }

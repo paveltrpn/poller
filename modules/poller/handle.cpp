@@ -30,7 +30,8 @@ template <CURLoption Opt>
 concept CurlOptString =
     ( Opt == CURLOPT_URL ) || ( Opt == CURLOPT_USERAGENT ) ||
     ( Opt == CURLOPT_POSTFIELDS ) || ( Opt == CURLOPT_COPYPOSTFIELDS ) ||
-    ( Opt == CURLOPT_USERPWD ) || ( Opt == CURLOPT_HEADERDATA );
+    ( Opt == CURLOPT_USERPWD ) || ( Opt == CURLOPT_HEADERDATA ) ||
+    ( Opt == CURLOPT_CUSTOMREQUEST );
 
 template <CURLoption Opt>
 concept CurlOptLong =

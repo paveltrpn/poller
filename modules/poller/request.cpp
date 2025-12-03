@@ -3,6 +3,7 @@ module;
 #include <string>
 #include <numeric>
 #include <span>
+#include <format>
 
 #include <curl/curl.h>
 
@@ -56,6 +57,8 @@ export struct HttpRequest {
     auto operator=( HttpRequest&& other ) noexcept -> HttpRequest& {
         if ( this != &other ) {
             handle_ = std::move( other.handle_ );
+            headers_ = other.headers_;
+            other.headers_ = nullptr;
         }
         return *this;
     }
@@ -63,6 +66,21 @@ export struct HttpRequest {
     auto setUrl( const std::string& value ) -> HttpRequest& {
         handle_.setopt<CURLOPT_URL>( value );
         return ( *this );
+    }
+
+    auto setHeader( const std::string& name, const std::string& value )
+        -> HttpRequest& {
+        const auto headerString = std::format( "{}: {}", name, value );
+
+        headers_ = curl_slist_append( headers_, headerString.data() );
+
+        return ( *this );
+    }
+
+    auto bake() -> void {
+        if ( headers_ != nullptr ) {
+            handle_.setopt<CURLOPT_HTTPHEADER>( headers_ );
+        }
     }
 
     auto isValid() -> bool {
@@ -85,13 +103,20 @@ export struct HttpRequest {
         handle_.enableDebug();
     }
 
+    auto clean() -> void {
+        //
+        curl_slist_free_all( headers_ );
+    }
+
 protected:
     Handle handle_;
+    curl_slist* headers_{ nullptr };
 };
 
 export struct HttpRequestGet final : HttpRequest {
     HttpRequestGet()
         : HttpRequest() {
+        // Mark request as GET.
         handle_.setopt<CURLOPT_HTTPGET>( 1l );
     }
 };
@@ -99,6 +124,7 @@ export struct HttpRequestGet final : HttpRequest {
 export struct HttpRequestPost final : HttpRequest {
     HttpRequestPost()
         : HttpRequest() {
+        // Mark request as POST.
         handle_.setopt<CURLOPT_POST>( 1l );
     }
 
@@ -116,14 +142,16 @@ export struct HttpRequestPost final : HttpRequest {
 export struct HttpRequestDelete final : HttpRequest {
     HttpRequestDelete()
         : HttpRequest() {
-        handle_.setopt<CURLOPT_HTTPGET>( 1l );
+        // Mark request as DELETE.
+        handle_.setopt<CURLOPT_CUSTOMREQUEST>( "DELETE" );
     }
 };
 
 export struct HttpRequestPut final : HttpRequest {
     HttpRequestPut()
         : HttpRequest() {
-        handle_.setopt<CURLOPT_HTTPGET>( 1l );
+        // Mark request as PUT.
+        handle_.setopt<CURLOPT_UPLOAD>( 1l );
     }
 };
 

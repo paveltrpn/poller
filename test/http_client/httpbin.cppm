@@ -18,6 +18,7 @@ namespace httpbin {
 using namespace std::chrono_literals;
 
 const std::string HTTPBIN_USERAGENT = "http://httpbin.org/user-agent";
+const std::string HTTPBIN_HEADERS = "http://httpbin.org/headers";
 
 export struct HttpbinClient final {
     HttpbinClient() = default;
@@ -34,13 +35,34 @@ export struct HttpbinClient final {
         //
         requestAsync( HTTPBIN_USERAGENT );
 
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( HTTPBIN_USERAGENT );
+            requestAsync( std::move( req ) );
+        }
+
+        {
+            auto req = poller::HttpRequestGet{};
+            req.setUrl( HTTPBIN_HEADERS )
+                .setHeader( "First-Header", "value" )
+                .setHeader( "Second-Header", "value" )
+                .setHeader( "Third-Header", "value" )
+                .bake();
+            requestAsync( std::move( req ) );
+        }
+
         client_.submit();
     }
 
 private:
     auto requestAsync( std::string rqst ) -> poller::Task<void> {
         auto resp = co_await client_.requestAsyncVoid( rqst );
-        std::println( "ready {} - {}", resp.code, resp.data );
+        std::println( "response code: {}\ndata:\n{}", resp.code, resp.data );
+    }
+
+    auto requestAsync( poller::HttpRequest&& req ) -> poller::Task<void> {
+        auto resp = co_await client_.requestAsyncVoid( std::move( req ) );
+        std::println( "response code: {}\ndata:\n{}", resp.code, resp.data );
     }
 
 private:

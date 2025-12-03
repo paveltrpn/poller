@@ -99,10 +99,6 @@ public:
                     }
                 }
 
-                if ( still_running == 0 ) {
-                    std::println( "no work" );
-                }
-
                 // curl poll
                 {
                     const auto res = curl_multi_poll( multiHandle_, nullptr, 0,
@@ -201,11 +197,32 @@ public:
             // Allocate Requset data. Delete after curl perform actions.
             auto requestPtr = new Request{ std::move( cb ), {} };
 
+            // It is used to set the User-Agent: header field in the
+            // HTTP request sent to the remote server.
             request.handle().setopt<CURLOPT_USERAGENT>(
                 POLLER_USERAGNET_STRING );
+
+            // This callback function gets called by libcurl as soon as there
+            // is data received that needs to be saved. For most transfers,
+            // this callback gets called many times and each invoke delivers
+            //  another chunk of data. ptr points to the delivered data, and
+            // the size of that data is nmemb; size is always 1.
             request.handle().setopt<CURLOPT_WRITEFUNCTION>( writeToRequest );
+
+            // If you use the CURLOPT_WRITEFUNCTION option, this is the pointer you
+            // get in that callback's fourth and last argument. If you do not use a
+            // write callback, you must make pointer a 'FILE ' (cast to 'void ') as
+            // libcurl passes this to fwrite(3) when writing data.
             request.handle().setopt<CURLOPT_WRITEDATA>( requestPtr );
+
+            // Pointing to data that should be associated with this curl handle
             request.handle().setopt<CURLOPT_PRIVATE>( requestPtr );
+
+            // Ask libcurl to include the headers in the write callback (CURLOPT_WRITEFUNCTION).
+            // This option is relevant for protocols that actually have headers
+            // or other meta-data (like HTTP and FTP)
+            //
+            // request.handle().setopt<CURLOPT_HEADER>( 1l );
 
             // Is this thrad safe to add easy handle to multi
             // when multi handle performing loop cuntinues???
@@ -213,6 +230,9 @@ public:
             // "You can add more easy handles to a multi handle at any
             // point, even if other transfers are already running"
             curl_multi_add_handle( multiHandle_, request );
+
+            // Clean request allocated data (headers slist pointer etc.)
+            request.clean();
         } else {
             std::println( "poller request not performed, request is invalid!" );
         }
