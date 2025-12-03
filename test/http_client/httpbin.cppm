@@ -18,6 +18,7 @@ namespace httpbin {
 using namespace std::chrono_literals;
 
 const std::string HTTPBIN_USERAGENT = "http://httpbin.org/user-agent";
+const std::string HTTPBIN_IP = "http://httpbin.org/ip";
 const std::string HTTPBIN_HEADERS = "http://httpbin.org/headers";
 
 export struct HttpbinClient final {
@@ -48,6 +49,12 @@ export struct HttpbinClient final {
                 .setHeader( "Second-Header", "value" )
                 .setHeader( "Third-Header", "value" )
                 .bake();
+            requestAsync( std::move( req ) );
+        }
+
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( HTTPBIN_IP ).gentlyUseV2().bake();
             requestAsync( std::move( req ) );
         }
 

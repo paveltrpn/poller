@@ -77,6 +77,26 @@ export struct HttpRequest {
         return ( *this );
     }
 
+    auto forceUseV2() -> HttpRequest& {
+        // This option requires prior knowledge that the server
+        // supports HTTP/2 directly, without an HTTP/1.1 Upgrade. If the
+        // server does not support HTTP/2 in this manner, the
+        // connection will likely fail.
+        handle_.setopt<CURLOPT_HTTP_VERSION>(
+            CURL_HTTP_VERSION_2_PRIOR_KNOWLEDGE );
+
+        return ( *this );
+    }
+
+    auto gentlyUseV2() -> HttpRequest& {
+        // This option tells libcurl to attempt to
+        // use HTTP/2 over TLS, with a fallback
+        // to HTTP/1.1 if negotiation fails.
+        handle_.setopt<CURLOPT_HTTP_VERSION>( CURL_HTTP_VERSION_2TLS );
+
+        return ( *this );
+    }
+
     auto bake() -> void {
         if ( headers_ != nullptr ) {
             handle_.setopt<CURLOPT_HTTPHEADER>( headers_ );

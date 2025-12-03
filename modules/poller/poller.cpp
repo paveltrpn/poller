@@ -205,7 +205,7 @@ public:
             // This callback function gets called by libcurl as soon as there
             // is data received that needs to be saved. For most transfers,
             // this callback gets called many times and each invoke delivers
-            //  another chunk of data. ptr points to the delivered data, and
+            // another chunk of data. ptr points to the delivered data, and
             // the size of that data is nmemb; size is always 1.
             request.handle().setopt<CURLOPT_WRITEFUNCTION>( writeToRequest );
 
