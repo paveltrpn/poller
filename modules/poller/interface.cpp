@@ -1,6 +1,9 @@
 export module poller;
 
 export import :poller;
+export import :payload;
+export import :result;
+export import :poller;
 export import :task;
 export import :handle;
 export import :request;

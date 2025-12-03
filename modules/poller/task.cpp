@@ -11,15 +11,11 @@ module;
 
 export module poller:task;
 
+import :result;
+
 using namespace std::chrono_literals;
 
 namespace poller {
-
-export struct Result {
-    long code;
-    std::string data;
-    std::string headers;
-};
 
 export template <typename T>
 struct Task;

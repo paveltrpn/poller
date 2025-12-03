@@ -3,7 +3,7 @@ module;
 #include <string>
 #include <print>
 #include <coroutine>
-#include <functional>
+#include <memory>
 
 #include <curl/curl.h>
 
@@ -15,29 +15,10 @@ import :request;
 import :handle;
 import :write_func;
 import :task;
+import :payload;
+import :result;
 
 namespace poller {
-
-export using CallbackFn = std::function<void( Result result )>;
-
-export struct ResponsePayload {
-    CallbackFn callback;
-    std::string data;
-    std::string headers;
-};
-
-auto writeDataCallback( char* ptr, size_t, size_t nmemb, void* tab ) -> size_t {
-    auto r = reinterpret_cast<ResponsePayload*>( tab );
-    r->data.append( ptr, nmemb );
-    return nmemb;
-}
-
-auto writeHeaderCallback( char* buffer, size_t size, size_t nitems,
-                          void* userdata ) -> size_t {
-    auto i = static_cast<ResponsePayload*>( userdata );
-    i->headers.append( buffer, nitems * size );
-    return nitems * size;
-}
 
 export template <typename T, typename U>
 struct RequestAwaitable;
@@ -125,7 +106,7 @@ public:
                         }
 
                         // Auto free when out of scope.
-                        auto rpPtr = std::unique_ptr<ResponsePayload>{};
+                        auto rpPtr = std::unique_ptr<Payload>{};
                         {
                             auto privatePtr = (void*){};
                             const auto res = curl_easy_getinfo(
@@ -137,8 +118,8 @@ public:
                                     curl_easy_strerror( res ) );
                             }
 
-                            rpPtr.reset( reinterpret_cast<ResponsePayload*>(
-                                privatePtr ) );
+                            rpPtr.reset(
+                                reinterpret_cast<Payload*>( privatePtr ) );
                         }
 
                         rpPtr->callback( { code, std::move( rpPtr->data ),
@@ -159,7 +140,7 @@ public:
         -> RequestAwaitable<HttpRequest, Task<void>> = delete;
 
     void performRequest( const std::string& url, CallbackFn cb ) {
-        auto rp = new ResponsePayload{ std::move( cb ), {}, {} };
+        auto rp = new Payload{ std::move( cb ), {}, {} };
 
         poller::Handle handle;
 
@@ -186,7 +167,7 @@ public:
     void performRequest( HttpRequest&& request, CallbackFn cb ) {
         if ( request.isValid() ) {
             // Allocate Requset data. Delete after curl perform actions.
-            auto rp = new ResponsePayload{ std::move( cb ), {}, {} };
+            auto rp = new Payload{ std::move( cb ), {}, {} };
 
             // It is used to set the User-Agent: header field in the
             // HTTP request sent to the remote server.
