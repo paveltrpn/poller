@@ -20,36 +20,23 @@ namespace poller {
 
 export using CallbackFn = std::function<void( Result result )>;
 
-export struct Request {
+export struct ResponsePayload {
     CallbackFn callback;
-    std::string buffer;
+    std::string data;
+    std::string headers;
 };
 
-[[maybe_unused]] auto writeCallback( char* ptr, size_t, size_t nmemb,
-                                     void* tab ) -> size_t {
-    auto r = reinterpret_cast<Request*>( tab );
-    r->buffer.append( ptr, nmemb );
+auto writeDataCallback( char* ptr, size_t, size_t nmemb, void* tab ) -> size_t {
+    auto r = reinterpret_cast<ResponsePayload*>( tab );
+    r->data.append( ptr, nmemb );
     return nmemb;
 }
 
-struct HeaderInfo {
-    int shoesize;
-    char* secret;
-};
-
-auto headerCallback( char* buffer, size_t size, size_t nitems, void* userdata )
-    -> size_t {
-    auto* i = static_cast<HeaderInfo*>( userdata );
-    std::println( "shoe size: {}\n", i->shoesize );
-    /* now this callback can access the my_info struct */
-
+auto writeHeaderCallback( char* buffer, size_t size, size_t nitems,
+                          void* userdata ) -> size_t {
+    auto i = static_cast<ResponsePayload*>( userdata );
+    i->headers.append( buffer, nitems * size );
     return nitems * size;
-}
-
-[[maybe_unused]] auto fillRequest( char* ptr, size_t, size_t nmemb,
-                                   Request* tab ) -> size_t {
-    tab->buffer.append( ptr, nmemb );
-    return nmemb;
 }
 
 export template <typename T, typename U>
@@ -137,7 +124,7 @@ public:
                             }
                         }
 
-                        auto requestPtr = (Request*){};
+                        auto rpPtr = (ResponsePayload*){};
                         {
                             auto privatePtr = (void*){};
                             const auto res = curl_easy_getinfo(
@@ -149,18 +136,18 @@ public:
                                     curl_easy_strerror( res ) );
                             }
 
-                            requestPtr =
-                                reinterpret_cast<Request*>( privatePtr );
+                            rpPtr = reinterpret_cast<ResponsePayload*>(
+                                privatePtr );
                         }
 
-                        requestPtr->callback(
-                            { code, std::move( requestPtr->buffer ) } );
+                        rpPtr->callback( { code, std::move( rpPtr->data ),
+                                           std::move( rpPtr->headers ) } );
 
                         curl_multi_remove_handle( multiHandle_, handle );
                         curl_easy_cleanup( handle );
 
                         // Delete manually allocated data.
-                        delete requestPtr;
+                        delete rpPtr;
                     }
                 } while ( msg );
             } while ( still_running );
@@ -174,15 +161,15 @@ public:
         -> RequestAwaitable<HttpRequest, Task<void>> = delete;
 
     void performRequest( const std::string& url, CallbackFn cb ) {
-        auto requestPtr = new Request{ std::move( cb ), {} };
+        auto rp = new ResponsePayload{ std::move( cb ), {} };
 
         poller::Handle handle;
 
         handle.setopt<CURLOPT_URL>( url );
         handle.setopt<CURLOPT_USERAGENT>( POLLER_USERAGNET_STRING );
-        handle.setopt<CURLOPT_WRITEFUNCTION>( writeCallback );
-        handle.setopt<CURLOPT_WRITEDATA>( requestPtr );
-        handle.setopt<CURLOPT_PRIVATE>( requestPtr );
+        handle.setopt<CURLOPT_WRITEFUNCTION>( writeDataCallback );
+        handle.setopt<CURLOPT_WRITEDATA>( rp );
+        handle.setopt<CURLOPT_PRIVATE>( rp );
 
         // handle.setopt<CURLOPT_HEADER>( 1l );
 
@@ -191,7 +178,6 @@ public:
         // curl_easy_setopt(curl, CURLOPT_USERPWD, "user:pass");
         // curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
         // curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
-        // curl_easy_setopt(curl, CURLOPT_HEADERDATA, &header_string);
 
         curl_multi_add_handle( multiHandle_, handle );
     }
@@ -199,7 +185,7 @@ public:
     void performRequest( HttpRequest&& request, CallbackFn cb ) {
         if ( request.isValid() ) {
             // Allocate Requset data. Delete after curl perform actions.
-            auto requestPtr = new Request{ std::move( cb ), {} };
+            auto rp = new ResponsePayload{ std::move( cb ), {} };
 
             // It is used to set the User-Agent: header field in the
             // HTTP request sent to the remote server.
@@ -211,20 +197,23 @@ public:
             // this callback gets called many times and each invoke delivers
             // another chunk of data. ptr points to the delivered data, and
             // the size of that data is nmemb; size is always 1.
-            request.handle().setopt<CURLOPT_WRITEFUNCTION>( writeCallback );
+            request.handle().setopt<CURLOPT_WRITEFUNCTION>( writeDataCallback );
 
             // If you use the CURLOPT_WRITEFUNCTION option, this is the pointer you
             // get in that callback's fourth and last argument. If you do not use a
             // write callback, you must make pointer a 'FILE ' (cast to 'void ') as
             // libcurl passes this to fwrite(3) when writing data.
-            request.handle().setopt<CURLOPT_WRITEDATA>( requestPtr );
+            request.handle().setopt<CURLOPT_WRITEDATA>( rp );
+
+            // Callback that receives header data.
+            request.handle().setopt<CURLOPT_HEADERFUNCTION>(
+                writeHeaderCallback );
+
+            // Pointer to pass to header callback
+            request.handle().setopt<CURLOPT_HEADERDATA>( rp );
 
             // Pointing to data that should be associated with this curl handle
-            request.handle().setopt<CURLOPT_PRIVATE>( requestPtr );
-
-            // request.handle().setopt<CURLOPT_HEADERFUNCTION>( headerCallback );
-            // HeaderInfo* foo;
-            // request.handle().setopt<CURLOPT_HEADERDATA>( foo );
+            request.handle().setopt<CURLOPT_PRIVATE>( rp );
 
             // Ask libcurl to include the headers in the write callback (CURLOPT_WRITEFUNCTION).
             // This option is relevant for protocols that actually have headers
@@ -290,7 +279,7 @@ struct RequestAwaitable final {
     }
 
     [[nodiscard]]
-    auto await_resume() const noexcept -> Result {
+    auto await_resume() noexcept -> Result {
         //
         return std::move( result_ );
     }

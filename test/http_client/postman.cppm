@@ -69,7 +69,7 @@ export struct PostmanClient final {
 
         for ( auto&& prom : resps ) {
             // Block until get() result!
-            const auto [code, data] = prom.get();
+            const auto [code, data, headers] = prom.get();
             std::print( " ==== response code: {} body: {}\n", code, data );
         }
     }
@@ -78,7 +78,10 @@ private:
     auto requestAsync( poller::HttpRequest&& req ) -> poller::Task<void> {
         auto resp = co_await client_.requestAsyncVoid( std::move( req ) );
 
-        std::println( "ready {} - {}", resp.code, resp.data );
+        const auto [code, data, headers] = resp;
+
+        std::println( "response code: {}\ndata:\n{}\nheaders:\n{}", code, data,
+                      headers );
     }
 
     [[nodiscard]] auto requestPromise( poller::HttpRequest&& rqst )
@@ -90,7 +93,7 @@ private:
             co_return{ resp.code, respJson["args"]["arg"] };
         } catch ( const nlohmann::json::parse_error& e ) {
             std::println(
-                "config json parse error\n"
+                "json parse error\n"
                 "message:\t{}\n"
                 "exception id:\t{}\n"
                 "byte position of error:\t{}\n",

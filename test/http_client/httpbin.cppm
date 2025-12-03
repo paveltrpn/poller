@@ -64,12 +64,20 @@ export struct HttpbinClient final {
 private:
     auto requestAsync( std::string rqst ) -> poller::Task<void> {
         auto resp = co_await client_.requestAsyncVoid( rqst );
-        std::println( "response code: {}\ndata:\n{}", resp.code, resp.data );
+
+        const auto [code, data, headers] = resp;
+
+        std::println( "response code: {}\ndata:\n{}\nheaders:\n{}", code, data,
+                      headers );
     }
 
     auto requestAsync( poller::HttpRequest&& req ) -> poller::Task<void> {
         auto resp = co_await client_.requestAsyncVoid( std::move( req ) );
-        std::println( "response code: {}\ndata:\n{}", resp.code, resp.data );
+
+        const auto [code, data, headers] = resp;
+
+        std::println( "response code: {}\ndata:\n{}\nheaders:\n{}", code, data,
+                      headers );
     }
 
 private:
