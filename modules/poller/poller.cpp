@@ -124,7 +124,8 @@ public:
                             }
                         }
 
-                        auto rpPtr = (ResponsePayload*){};
+                        // Auto free when out of scope.
+                        auto rpPtr = std::unique_ptr<ResponsePayload>{};
                         {
                             auto privatePtr = (void*){};
                             const auto res = curl_easy_getinfo(
@@ -136,8 +137,8 @@ public:
                                     curl_easy_strerror( res ) );
                             }
 
-                            rpPtr = reinterpret_cast<ResponsePayload*>(
-                                privatePtr );
+                            rpPtr.reset( reinterpret_cast<ResponsePayload*>(
+                                privatePtr ) );
                         }
 
                         rpPtr->callback( { code, std::move( rpPtr->data ),
@@ -145,9 +146,6 @@ public:
 
                         curl_multi_remove_handle( multiHandle_, handle );
                         curl_easy_cleanup( handle );
-
-                        // Delete manually allocated data.
-                        delete rpPtr;
                     }
                 } while ( msg );
             } while ( still_running );
@@ -161,23 +159,26 @@ public:
         -> RequestAwaitable<HttpRequest, Task<void>> = delete;
 
     void performRequest( const std::string& url, CallbackFn cb ) {
-        auto rp = new ResponsePayload{ std::move( cb ), {} };
+        auto rp = new ResponsePayload{ std::move( cb ), {}, {} };
 
         poller::Handle handle;
 
+        // URL for this transfer.
         handle.setopt<CURLOPT_URL>( url );
+
         handle.setopt<CURLOPT_USERAGENT>( POLLER_USERAGNET_STRING );
+
         handle.setopt<CURLOPT_WRITEFUNCTION>( writeDataCallback );
+
         handle.setopt<CURLOPT_WRITEDATA>( rp );
+
+        // Callback that receives header data.
+        handle.setopt<CURLOPT_HEADERFUNCTION>( writeHeaderCallback );
+
+        // Pointer to pass to header callback
+        handle.setopt<CURLOPT_HEADERDATA>( rp );
+
         handle.setopt<CURLOPT_PRIVATE>( rp );
-
-        // handle.setopt<CURLOPT_HEADER>( 1l );
-
-        // GET
-        // curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
-        // curl_easy_setopt(curl, CURLOPT_USERPWD, "user:pass");
-        // curl_easy_setopt(curl, CURLOPT_MAXREDIRS, 50L);
-        // curl_easy_setopt(curl, CURLOPT_TCP_KEEPALIVE, 1L);
 
         curl_multi_add_handle( multiHandle_, handle );
     }
@@ -185,7 +186,7 @@ public:
     void performRequest( HttpRequest&& request, CallbackFn cb ) {
         if ( request.isValid() ) {
             // Allocate Requset data. Delete after curl perform actions.
-            auto rp = new ResponsePayload{ std::move( cb ), {} };
+            auto rp = new ResponsePayload{ std::move( cb ), {}, {} };
 
             // It is used to set the User-Agent: header field in the
             // HTTP request sent to the remote server.
@@ -268,7 +269,6 @@ struct RequestAwaitable final {
         return false;
     }
 
-    // can be void, bool, coroutine_handle<>
     auto await_suspend(
         std::coroutine_handle<typename U::promise_type> handle ) noexcept {
         client_.performRequest( std::move( request_ ),
