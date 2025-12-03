@@ -88,7 +88,7 @@ struct Task<Result> {
 
         auto return_value( Result value ) -> void {
             //
-            payload_ = value;
+            payload_ = std::move( value );
         }
 
         auto unhandled_exception() -> void {
@@ -158,9 +158,10 @@ struct Task<Result> {
     }
 
     // Block caller thread until coroutine reach final_suspend()
-    Result get() {
+    [[nodiscard]]
+    auto get() -> Result {
         std::unique_lock<std::mutex> lk{ handle_.promise().m_ };
-        handle_.promise().cv_.wait( lk, [this]() {
+        handle_.promise().cv_.wait( lk, [this]() -> bool {
             //
             return handle_.promise().ready_;
         } );

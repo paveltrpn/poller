@@ -38,7 +38,7 @@ export struct PostmanClient final : poller::Poller {
 
     ~PostmanClient() = default;
 
-    auto run() -> void {
+    auto run() -> void override {
         {
             auto req = poller::HttpRequest{};
             req.setUrl( POSTMAN_ECHO_GET );

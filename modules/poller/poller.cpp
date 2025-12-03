@@ -157,7 +157,7 @@ private:
     auto requestAsync( const HttpRequest& request )
         -> RequestAwaitable<HttpRequest, Task<void>> = delete;
 
-    void performRequest( const std::string& url, CallbackFn cb ) {
+    auto performRequest( const std::string& url, CallbackFn cb ) const -> void {
         auto rp = new Payload{ std::move( cb ), {}, {} };
 
         poller::Handle handle;
@@ -182,7 +182,7 @@ private:
         curl_multi_add_handle( multiHandle_, handle );
     }
 
-    void performRequest( HttpRequest&& request, CallbackFn cb ) {
+    auto performRequest( HttpRequest&& request, CallbackFn cb ) const -> void {
         if ( request.isValid() ) {
             // Allocate Requset data. Delete after curl perform actions.
             auto rp = new Payload{ std::move( cb ), {}, {} };
@@ -274,7 +274,8 @@ struct RequestAwaitable final {
         return std::move( result_ );
     }
 
-    Poller& client_;
+private:
+    const Poller& client_;
     T request_;
     Result result_;
 };
