@@ -24,7 +24,7 @@ export struct Result {
 export template <typename T>
 struct Task;
 
-// A simple task-class for void-returning coroutines.
+// Simple task class for void-returning coroutines.
 export template <>
 struct Task<void> {
     struct promise_type;
@@ -32,7 +32,7 @@ struct Task<void> {
 
     struct promise_type {
     public:
-        Task get_return_object() {
+        auto get_return_object() -> Task {
             //
             return {};
         };
@@ -59,6 +59,8 @@ struct Task<void> {
     };
 };
 
+// Task class with get() method, block caller thread and
+// and return value when ready.
 export template <>
 struct Task<Result> {
     struct promise_type;
@@ -66,7 +68,7 @@ struct Task<Result> {
 
     struct promise_type {
     public:
-        Task get_return_object() {
+        auto get_return_object() -> Task {
             //
             return handle_type::from_promise( *this );
         };
@@ -115,7 +117,7 @@ struct Task<Result> {
         t.handle_ = nullptr;
     }
 
-    Task& operator=( Task&& other ) noexcept {
+    auto operator=( Task&& other ) noexcept -> Task& {
         if ( std::addressof( other ) != this ) {
             if ( handle_ ) {
                 handle_.destroy();
@@ -130,7 +132,7 @@ struct Task<Result> {
 
     // Move only.
     Task( const Task& ) = delete;
-    Task& operator=( const Task& ) = delete;
+    auto operator=( const Task& ) -> Task& = delete;
 
     ~Task() {
         //
@@ -148,12 +150,13 @@ struct Task<Result> {
         }
     }
 
-    constexpr auto empty() const noexcept -> bool {
+    [[nodiscard]]
+    auto empty() const noexcept -> bool {
         //
         return handle_ == nullptr;
     }
 
-    constexpr explicit operator bool() const noexcept {
+    explicit operator bool() const noexcept {
         //
         return !empty();
     }
