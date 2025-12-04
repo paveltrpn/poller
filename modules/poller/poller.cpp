@@ -4,6 +4,7 @@ module;
 #include <print>
 #include <coroutine>
 #include <memory>
+#include <type_traits>
 
 #include <curl/curl.h>
 
@@ -21,7 +22,7 @@ import :result;
 namespace poller {
 
 export template <typename T, typename U>
-struct RequestAwaitable;
+requires std::is_base_of_v<T, poller::HttpRequest> struct RequestAwaitable;
 
 #define POLLER_USERAGNET_STRING "poller/0.1"
 
@@ -150,31 +151,6 @@ private:
     auto performRequest( const HttpRequest& request, CallbackFn cb )
         -> void = delete;
 
-    auto performRequest( const std::string& url, CallbackFn cb ) const -> void {
-        auto rp = new Payload{ std::move( cb ), {}, {} };
-
-        poller::Handle handle;
-
-        // URL for this transfer.
-        handle.setopt<CURLOPT_URL>( url );
-
-        handle.setopt<CURLOPT_USERAGENT>( POLLER_USERAGNET_STRING );
-
-        handle.setopt<CURLOPT_WRITEFUNCTION>( writeDataCallback );
-
-        handle.setopt<CURLOPT_WRITEDATA>( rp );
-
-        // Callback that receives header data.
-        handle.setopt<CURLOPT_HEADERFUNCTION>( writeHeaderCallback );
-
-        // Pointer to pass to header callback
-        handle.setopt<CURLOPT_HEADERDATA>( rp );
-
-        handle.setopt<CURLOPT_PRIVATE>( rp );
-
-        curl_multi_add_handle( multiHandle_, handle );
-    }
-
     auto performRequest( HttpRequest&& request, CallbackFn cb ) const -> void {
         if ( request.isValid() ) {
             // Allocate Requset data. Delete after curl perform actions.
@@ -237,11 +213,16 @@ private:
     CURLM* multiHandle_;
 
     template <typename T, typename U>
-    friend struct RequestAwaitable;
+    requires std::is_base_of_v<
+        T, poller::HttpRequest> friend struct RequestAwaitable;
 };
 
 export template <typename T, typename U>
-struct RequestAwaitable final {
+requires
+    std::is_base_of_v<T, poller::HttpRequest> struct RequestAwaitable final {
+    using request_type = T;
+    using task_type = U;
+
     RequestAwaitable( Poller& client, T request )
         : client_( client )
         , request_( std::move( request ) ) {};
@@ -252,8 +233,8 @@ struct RequestAwaitable final {
         return false;
     }
 
-    auto await_suspend(
-        std::coroutine_handle<typename U::promise_type> handle ) noexcept {
+    auto await_suspend( std::coroutine_handle<typename task_type::promise_type>
+                            handle ) noexcept {
         client_.performRequest( std::move( request_ ),
                                 [handle, this]( Result res ) -> void {
                                     result_ = std::move( res );
@@ -269,7 +250,7 @@ struct RequestAwaitable final {
 
 private:
     const Poller& client_;
-    T request_;
+    request_type request_;
     Result result_;
 };
 

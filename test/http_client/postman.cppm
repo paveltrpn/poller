@@ -51,7 +51,7 @@ export struct PostmanClient final : poller::Poller {
             request( std::move( req ) );
         }
 
-        std::vector<poller::Task<std::string>> resps;
+        std::vector<poller::Task<std::pair<int, std::string>>> resps;
         for ( int i = 0; i < 10; ++i ) {
             auto req = poller::HttpRequest{};
 
@@ -68,8 +68,8 @@ export struct PostmanClient final : poller::Poller {
 
         for ( auto&& prom : resps ) {
             // Block until get() result!
-            auto data = prom.get();
-            std::print( " ==== response code: body: {}\n", data );
+            auto [code, data] = prom.get();
+            std::print( " === response code: {} body: {}\n", code, data );
         }
     }
 
@@ -84,12 +84,13 @@ private:
     }
 
     [[nodiscard]] auto requestPromise( poller::HttpRequest&& rqst )
-        -> poller::Task<std::string> {
-        auto resp = co_await requestAsync<std::string>( std::move( rqst ) );
+        -> poller::Task<std::pair<int, std::string>> {
+        auto resp = co_await requestAsync<std::pair<int, std::string>>(
+            std::move( rqst ) );
 
         try {
             const auto respJson = nlohmann::json::parse( resp.data );
-            co_return{ respJson["args"]["arg"] };
+            co_return{ resp.code, respJson["args"]["arg"] };
         } catch ( const nlohmann::json::parse_error& e ) {
             std::println(
                 "json parse error\n"
@@ -98,7 +99,7 @@ private:
                 "byte position of error:\t{}\n",
                 e.what(), e.id, e.byte );
 
-            co_return{ "NO DATA" };
+            co_return{ 0, "NO DATA" };
         }
     }
 };

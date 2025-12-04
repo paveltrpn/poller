@@ -145,6 +145,7 @@ private:
     handle_type handle_{ nullptr };
 };
 
+// Partial specialization fo void type.
 // Simple task class for void-returning coroutines.
 export template <>
 struct Task<void> {
