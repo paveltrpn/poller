@@ -3,6 +3,8 @@ module;
 
 #include <coroutine>
 #include <exception>
+#include <type_traits>
+#include <concepts>
 #include <functional>
 #include <mutex>
 #include <print>
@@ -18,47 +20,16 @@ using namespace std::chrono_literals;
 namespace poller {
 
 export template <typename T>
-struct Task;
-
-// Simple task class for void-returning coroutines.
-export template <>
-struct Task<void> {
-    struct promise_type;
-    using handle_type = std::coroutine_handle<promise_type>;
-
-    struct promise_type {
-    public:
-        auto get_return_object() -> Task {
-            //
-            return {};
-        };
-
-        auto initial_suspend() noexcept {
-            //
-            return std::suspend_never{};
-        }
-
-        auto final_suspend() noexcept {
-            //
-            return std::suspend_never{};
-        }
-
-        auto return_void() -> void { /* noop */ }
-
-        auto unhandled_exception() -> void {
-            //
-            exception_ = std::current_exception();
-        }
-
-    public:
-        std::exception_ptr exception_{ nullptr };
-    };
-};
+concept TaskParamter =
+    std::is_same_v<T, void> || std::is_same_v<T, std::string> ||
+    std::is_same_v<T, std::pair<int, std::string>>;
 
 // Task class with get() method, block caller thread and
 // and return value when ready.
-export template <>
-struct Task<Result> {
+export template <TaskParamter T>
+struct Task {
+    using value_type = T;
+
     struct promise_type;
     using handle_type = std::coroutine_handle<promise_type>;
 
@@ -86,7 +57,7 @@ struct Task<Result> {
             return {};
         }
 
-        auto return_value( Result value ) -> void {
+        auto return_value( value_type value ) -> void {
             //
             payload_ = std::move( value );
         }
@@ -97,12 +68,13 @@ struct Task<Result> {
         }
 
     public:
-        std::exception_ptr exception_{ nullptr };
-        Result payload_;
+        value_type payload_;
 
         std::condition_variable cv_;
         std::mutex m_;
         bool ready_{};
+
+        std::exception_ptr exception_{ nullptr };
     };
 
     Task( handle_type h )
@@ -159,7 +131,7 @@ struct Task<Result> {
 
     // Block caller thread until coroutine reach final_suspend()
     [[nodiscard]]
-    auto get() -> Result {
+    auto get() -> value_type {
         std::unique_lock<std::mutex> lk{ handle_.promise().m_ };
         handle_.promise().cv_.wait( lk, [this]() -> bool {
             //
@@ -171,6 +143,41 @@ struct Task<Result> {
 
 private:
     handle_type handle_{ nullptr };
+};
+
+// Simple task class for void-returning coroutines.
+export template <>
+struct Task<void> {
+    struct promise_type;
+    using handle_type = std::coroutine_handle<promise_type>;
+
+    struct promise_type {
+    public:
+        auto get_return_object() -> Task {
+            //
+            return {};
+        };
+
+        auto initial_suspend() noexcept {
+            //
+            return std::suspend_never{};
+        }
+
+        auto final_suspend() noexcept {
+            //
+            return std::suspend_never{};
+        }
+
+        auto return_void() -> void { /* noop */ }
+
+        auto unhandled_exception() -> void {
+            //
+            exception_ = std::current_exception();
+        }
+
+    public:
+        std::exception_ptr exception_{ nullptr };
+    };
 };
 
 }  // namespace poller

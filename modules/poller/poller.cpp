@@ -58,17 +58,13 @@ public:
         curl_global_cleanup();
     }
 
-    auto requestAsyncVoid( std::string url )
-        -> RequestAwaitable<std::string, Task<void>>;
+    template <TaskParamter T>
+    auto requestAsync( const HttpRequest& request )
+        -> RequestAwaitable<HttpRequest, Task<T>> = delete;
 
-    auto requestAsyncPromise( std::string url )
-        -> RequestAwaitable<std::string, Task<Result>>;
-
-    auto requestAsyncVoid( HttpRequest&& request )
-        -> RequestAwaitable<HttpRequest, Task<void>>;
-
-    auto requestAsyncPromise( HttpRequest&& request )
-        -> RequestAwaitable<HttpRequest, Task<Result>>;
+    template <TaskParamter T>
+    auto requestAsync( HttpRequest&& request )
+        -> RequestAwaitable<HttpRequest, Task<T>>;
 
     virtual auto run() -> void = 0;
 
@@ -153,9 +149,6 @@ protected:
 private:
     auto performRequest( const HttpRequest& request, CallbackFn cb )
         -> void = delete;
-
-    auto requestAsync( const HttpRequest& request )
-        -> RequestAwaitable<HttpRequest, Task<void>> = delete;
 
     auto performRequest( const std::string& url, CallbackFn cb ) const -> void {
         auto rp = new Payload{ std::move( cb ), {}, {} };
@@ -280,26 +273,9 @@ private:
     Result result_;
 };
 
-auto Poller::requestAsyncVoid( std::string url )
-    -> RequestAwaitable<std::string, Task<void>> {
-    //
-    return { *this, std::move( url ) };
-}
-
-auto Poller::requestAsyncPromise( std::string url )
-    -> RequestAwaitable<std::string, Task<Result>> {
-    //
-    return { *this, std::move( url ) };
-}
-
-auto Poller::requestAsyncVoid( HttpRequest&& request )
-    -> RequestAwaitable<HttpRequest, Task<void>> {
-    //
-    return { *this, std::move( request ) };
-}
-
-auto Poller::requestAsyncPromise( HttpRequest&& request )
-    -> RequestAwaitable<HttpRequest, Task<Result>> {
+template <TaskParamter T>
+auto Poller::requestAsync( HttpRequest&& request )
+    -> RequestAwaitable<HttpRequest, Task<T>> {
     //
     return { *this, std::move( request ) };
 }

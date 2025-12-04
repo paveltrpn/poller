@@ -42,16 +42,16 @@ export struct PostmanClient final : poller::Poller {
         {
             auto req = poller::HttpRequest{};
             req.setUrl( POSTMAN_ECHO_GET );
-            requestAsync( std::move( req ) );
+            request( std::move( req ) );
         }
 
         {
             auto req = poller::HttpRequest{};
             req.setUrl( POSTMAN_ECHO_GET_ARG_STRING );
-            requestAsync( std::move( req ) );
+            request( std::move( req ) );
         }
 
-        std::vector<poller::Task<poller::Result>> resps;
+        std::vector<poller::Task<std::string>> resps;
         for ( int i = 0; i < 10; ++i ) {
             auto req = poller::HttpRequest{};
 
@@ -68,14 +68,14 @@ export struct PostmanClient final : poller::Poller {
 
         for ( auto&& prom : resps ) {
             // Block until get() result!
-            const auto [code, data, headers] = prom.get();
-            std::print( " ==== response code: {} body: {}\n", code, data );
+            auto data = prom.get();
+            std::print( " ==== response code: body: {}\n", data );
         }
     }
 
 private:
-    auto requestAsync( poller::HttpRequest&& req ) -> poller::Task<void> {
-        auto resp = co_await requestAsyncVoid( std::move( req ) );
+    auto request( poller::HttpRequest&& req ) -> poller::Task<void> {
+        auto resp = co_await requestAsync<void>( std::move( req ) );
 
         const auto [code, data, headers] = resp;
 
@@ -84,12 +84,12 @@ private:
     }
 
     [[nodiscard]] auto requestPromise( poller::HttpRequest&& rqst )
-        -> poller::Task<poller::Result> {
-        auto resp = co_await requestAsyncPromise( std::move( rqst ) );
+        -> poller::Task<std::string> {
+        auto resp = co_await requestAsync<std::string>( std::move( rqst ) );
 
         try {
             const auto respJson = nlohmann::json::parse( resp.data );
-            co_return{ resp.code, respJson["args"]["arg"], "NO HEADERS" };
+            co_return{ respJson["args"]["arg"] };
         } catch ( const nlohmann::json::parse_error& e ) {
             std::println(
                 "json parse error\n"
@@ -97,7 +97,8 @@ private:
                 "exception id:\t{}\n"
                 "byte position of error:\t{}\n",
                 e.what(), e.id, e.byte );
-            co_return{ 0, "NO DATA", "NO HEADERS" };
+
+            co_return{ "NO DATA" };
         }
     }
 };
