@@ -20,13 +20,13 @@ using namespace std::chrono_literals;
 namespace poller {
 
 export template <typename T>
-concept TaskParamter =
+concept TaskParameter =
     std::is_same_v<T, void> || std::is_same_v<T, std::string> ||
     std::is_same_v<T, std::pair<int, std::string>>;
 
 // Task class with get() method, block caller thread and
 // and return value when ready.
-export template <TaskParamter T>
+export template <TaskParameter T>
 struct Task {
     using value_type = T;
 

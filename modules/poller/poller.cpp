@@ -59,11 +59,11 @@ public:
         curl_global_cleanup();
     }
 
-    template <TaskParamter T>
+    template <TaskParameter T>
     auto requestAsync( const HttpRequest& request )
         -> RequestAwaitable<HttpRequest, Task<T>> = delete;
 
-    template <TaskParamter T>
+    template <TaskParameter T>
     auto requestAsync( HttpRequest&& request )
         -> RequestAwaitable<HttpRequest, Task<T>>;
 
@@ -254,7 +254,7 @@ private:
     Result result_;
 };
 
-template <TaskParamter T>
+template <TaskParameter T>
 auto Poller::requestAsync( HttpRequest&& request )
     -> RequestAwaitable<HttpRequest, Task<T>> {
     //
