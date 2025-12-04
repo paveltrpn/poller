@@ -234,7 +234,7 @@ requires
     }
 
     auto await_suspend( std::coroutine_handle<typename task_type::promise_type>
-                            handle ) noexcept {
+                            handle ) noexcept -> void {
         client_.performRequest( std::move( request_ ),
                                 [handle, this]( Result res ) -> void {
                                     result_ = std::move( res );
