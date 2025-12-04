@@ -181,4 +181,83 @@ struct Task<void> {
     };
 };
 
+export template <TaskParameter T>
+struct ThenableTask {
+    using value_type = T;
+
+    struct promise_type;
+    using handle_type = std::coroutine_handle<promise_type>;
+
+    struct promise_type {
+    public:
+        auto get_return_object() -> ThenableTask {
+            //
+            return handle_type::from_promise( *this );
+        };
+
+        auto initial_suspend() noexcept -> std::suspend_always {
+            //
+            return {};
+        }
+
+        auto final_suspend() noexcept -> std::suspend_never {
+            thenCb_( payload_ );
+            return {};
+        }
+
+        auto return_value( value_type value ) -> void {
+            //
+            payload_ = std::move( value );
+        }
+
+        auto unhandled_exception() -> void {
+            //
+            exception_ = std::current_exception();
+        }
+
+    public:
+        value_type payload_;
+
+        std::function<void( value_type )> thenCb_{};
+
+        std::exception_ptr exception_{ nullptr };
+    };
+
+    ThenableTask( handle_type h )
+        : handle_( h ) { /* noop */ }
+
+    ThenableTask( ThenableTask&& t ) noexcept
+        : handle_( t.handle_ ) {
+        t.handle_ = nullptr;
+    }
+
+    auto operator=( ThenableTask&& other ) noexcept -> ThenableTask& {
+        if ( std::addressof( other ) != this ) {
+            if ( handle_ ) {
+                handle_.destroy();
+            }
+
+            handle_ = other.handle_;
+            other.handle_ = nullptr;
+        }
+
+        return *this;
+    }
+
+    // Move only.
+    ThenableTask( const ThenableTask& ) = delete;
+    auto operator=( const ThenableTask& ) -> ThenableTask& = delete;
+
+    ~ThenableTask() = default;
+
+    auto then( std::function<void( value_type )> cb ) -> void {
+        //
+        handle_.promise().thenCb_ = std::move( cb );
+        handle_.resume();
+    }
+
+private:
+    handle_type handle_{ nullptr };
+};
+
 }  // namespace poller

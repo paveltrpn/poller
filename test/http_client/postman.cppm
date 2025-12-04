@@ -49,8 +49,9 @@ export struct PostmanClient final : poller::Poller {
             request( std::move( req ) );
         }
 
+#define NUMBER_OF_PROMISES 3
         std::vector<poller::Task<std::pair<int, std::string>>> resps;
-        for ( int i = 0; i < 10; ++i ) {
+        for ( int i = 0; i < NUMBER_OF_PROMISES; ++i ) {
             auto req = poller::HttpRequest{};
 
             req.setUrl( POSTMAN_ECHO_GET_ARG_42 );
@@ -59,7 +60,7 @@ export struct PostmanClient final : poller::Poller {
 
             resps.emplace_back( std::move( resp ) );
 
-            std::print( " === request {} performed\n", i );
+            std::print( "=== request {} performed\n", i );
         }
 
         submit();
@@ -67,8 +68,21 @@ export struct PostmanClient final : poller::Poller {
         for ( auto&& prom : resps ) {
             // Block until get() result!
             auto [code, data] = prom.get();
-            std::print( " === response code: {} body: {}\n", code, data );
+            std::print( "=== response code: {} body: {}\n", code, data );
         }
+
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( POSTMAN_ECHO_GET_ARG_STRING );
+            auto resp = requestPromiseThenable( std::move( req ) );
+            resp.then( []( std::pair<int, std::string> value ) -> void {
+                //
+                auto [code, data] = value;
+                std::print( "=== thenable value: {} body: {}\n", code, data );
+            } );
+        }
+
+        submit();
     }
 
 private:
@@ -77,8 +91,7 @@ private:
 
         const auto [code, data, headers] = resp;
 
-        std::println( "response code: {}\ndata:\n{}\nheaders:\n{}", code, data,
-                      headers );
+        std::println( "response code: {}\ndata:\n{}", code, data );
     }
 
     [[nodiscard]] auto requestPromise( poller::HttpRequest&& rqst )
@@ -88,6 +101,28 @@ private:
 
         try {
             const auto respJson = nlohmann::json::parse( resp.data );
+
+            co_return{ resp.code, respJson["args"]["arg"] };
+        } catch ( const nlohmann::json::parse_error& e ) {
+            std::println(
+                "json parse error\n"
+                "message:\t{}\n"
+                "exception id:\t{}\n"
+                "byte position of error:\t{}\n",
+                e.what(), e.id, e.byte );
+
+            co_return{ 0, "NO DATA" };
+        }
+    }
+
+    [[nodiscard]] auto requestPromiseThenable( poller::HttpRequest&& rqst )
+        -> poller::ThenableTask<std::pair<int, std::string>> {
+        auto resp = co_await requestAsyncThenable<std::pair<int, std::string>>(
+            std::move( rqst ) );
+
+        try {
+            const auto respJson = nlohmann::json::parse( resp.data );
+
             co_return{ resp.code, respJson["args"]["arg"] };
         } catch ( const nlohmann::json::parse_error& e ) {
             std::println(
