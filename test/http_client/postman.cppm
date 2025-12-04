@@ -19,8 +19,6 @@ namespace postman {
 
 using namespace std::chrono_literals;
 
-#define USER_AGENT "poller/0.2"
-
 const std::string POSTMAN_ECHO_GET = "https://postman-echo.com/get";
 const std::string POSTMAN_ECHO_GET_ARG_STRING =
     "https://postman-echo.com/get?arg=good_to_see_some_string_here";
