@@ -190,18 +190,46 @@ struct ThenableTask {
 
     struct promise_type {
     public:
+        struct ThenableAwaiter final {
+            // Indicating that an await expression always suspends.
+            [[nodiscard]]
+            auto await_ready() const noexcept -> bool {
+                //
+                return false;
+            }
+
+            auto await_suspend( handle_type handle ) const noexcept -> bool {
+                // If returns true then the coroutine is SUSPENDED, and control
+                // flow returns to the caller of the coroutine.
+                //
+                // If returns false then the coroutine is NOT SUSPENDED after
+                // all, and execution immediately resumes within the same coroutine.
+                return !handle.promise().needToSuspend_;
+            };
+
+            auto await_resume() const noexcept -> void {
+                //
+            };
+        };
+
         auto get_return_object() -> ThenableTask {
             //
             return handle_type::from_promise( *this );
         };
 
-        auto initial_suspend() noexcept -> std::suspend_always {
+        auto initial_suspend() noexcept -> std::suspend_never {
             //
             return {};
         }
 
-        auto final_suspend() noexcept -> std::suspend_never {
-            thenCb_( payload_ );
+        auto final_suspend() noexcept -> ThenableAwaiter {
+            if ( thenCb_ ) {
+                // If we reach final suspend point and callback was passed
+                // then call it and signal to not suspend the coroutine
+                thenCb_( payload_ );
+                needToSuspend_ = false;
+            }
+
             return {};
         }
 
@@ -217,7 +245,7 @@ struct ThenableTask {
 
     public:
         value_type payload_;
-
+        bool needToSuspend_{ true };
         std::function<void( value_type )> thenCb_{};
 
         std::exception_ptr exception_{ nullptr };
@@ -251,9 +279,18 @@ struct ThenableTask {
     ~ThenableTask() = default;
 
     auto then( std::function<void( value_type )> cb ) -> void {
-        //
-        handle_.promise().thenCb_ = std::move( cb );
-        handle_.resume();
+        if ( !handle_.done() ) {
+            // If coroutine not in final suspend point then pass
+            // callback to promise for later call when coroutine
+            // reaches final suspend.
+            handle_.promise().thenCb_ = std::move( cb );
+        } else {
+            // Else if coroutine already reach final suspend then payload_
+            // always ready, we can call callback from here and destroy
+            // coroutine frame.
+            cb( handle_.promise().payload_ );
+            handle_.destroy();
+        }
     }
 
 private:

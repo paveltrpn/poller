@@ -71,16 +71,14 @@ export struct PostmanClient final : poller::Poller {
             std::print( "=== response code: {} body: {}\n", code, data );
         }
 
-        {
-            auto req = poller::HttpRequest{};
-            req.setUrl( POSTMAN_ECHO_GET_ARG_STRING );
-            auto resp = requestPromiseThenable( std::move( req ) );
-            resp.then( []( std::pair<int, std::string> value ) -> void {
-                //
-                auto [code, data] = value;
-                std::print( "=== thenable value: {} body: {}\n", code, data );
-            } );
-        }
+        auto req = poller::HttpRequest{};
+        req.setUrl( POSTMAN_ECHO_GET_ARG_STRING );
+        auto resp = requestPromiseThenable( std::move( req ) );
+        resp.then( []( std::pair<int, std::string> value ) -> void {
+            //
+            auto [code, data] = value;
+            std::print( "=== thenable value: {} body: {}\n", code, data );
+        } );
 
         submit();
     }
