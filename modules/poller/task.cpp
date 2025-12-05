@@ -121,6 +121,28 @@ struct Task {
 
     ~Task() = default;
 
+    auto detach() noexcept -> void {
+        if ( empty() ) {
+            return;
+        }
+
+        if ( handle_ ) {
+            handle_.destroy();
+            handle_ = nullptr;
+        }
+    }
+
+    [[nodiscard]]
+    auto empty() const noexcept -> bool {
+        //
+        return handle_ == nullptr;
+    }
+
+    explicit operator bool() const noexcept {
+        //
+        return !empty();
+    }
+
     auto then( std::function<void( value_type )> cb ) -> void {
         if ( !handle_.done() ) {
             // If coroutine not in final suspend point then pass
@@ -132,7 +154,7 @@ struct Task {
             // always ready, we can call callback from here and destroy
             // coroutine frame.
             cb( handle_.promise().payload_ );
-            handle_.destroy();
+            detach();
         }
     }
 
@@ -197,8 +219,6 @@ struct BlockingTask {
             return {};
         }
 
-        // suspend_always because we call coroutine destroy() which cause
-        // UB if coroutine not in suspention point.
         auto final_suspend() noexcept -> std::suspend_always {
             {
                 std::lock_guard<std::mutex> _{ m_ };
@@ -281,16 +301,21 @@ struct BlockingTask {
         return !empty();
     }
 
-    // Block caller thread until coroutine reach final_suspend()
     [[nodiscard]]
     auto get() -> value_type {
-        std::unique_lock<std::mutex> lk{ handle_.promise().m_ };
-        handle_.promise().cv_.wait( lk, [this]() -> bool {
-            //
-            return handle_.promise().ready_;
-        } );
+        if ( !handle_.done() ) {
+            // Block caller thread until coroutine reach final_suspend()
+            std::unique_lock<std::mutex> lk{ handle_.promise().m_ };
+            handle_.promise().cv_.wait( lk, [this]() -> bool {
+                //
+                return handle_.promise().ready_;
+            } );
+        }
 
-        return handle_.promise().payload_;
+        auto&& payload = std::move( handle_.promise().payload_ );
+        detach();
+
+        return payload;
     }
 
 private:
