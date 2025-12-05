@@ -59,6 +59,7 @@ export struct PostmanClient final : poller::Poller {
                 std::print( "=== thenable value: {} body: {}\n", code, data );
             } );
         }
+
         submit();
 
 #define NUMBER_OF_PROMISES 3
@@ -82,11 +83,18 @@ export struct PostmanClient final : poller::Poller {
             auto [code, data] = prom.get();
             std::print( "=== response code: {} body: {}\n", code, data );
         }
+
+        // We wait in destructor also.
+        wait();
+
+        std::println( "shared stated touched {} times", sharedState_ );
     }
 
 private:
     auto request( poller::HttpRequest&& req ) -> poller::Task<void> {
         auto resp = co_await requestAsync<void>( std::move( req ) );
+
+        sharedState_++;
 
         const auto [code, data, headers] = resp;
 
@@ -98,9 +106,10 @@ private:
         auto resp = co_await requestAsync<std::pair<int, std::string>>(
             std::move( rqst ) );
 
+        sharedState_++;
+
         try {
             const auto respJson = nlohmann::json::parse( resp.data );
-
             co_return{ resp.code, respJson["args"]["arg"] };
         } catch ( const nlohmann::json::parse_error& e ) {
             std::println(
@@ -119,9 +128,10 @@ private:
         auto resp = co_await requestAsyncBlocking<std::pair<int, std::string>>(
             std::move( rqst ) );
 
+        sharedState_++;
+
         try {
             const auto respJson = nlohmann::json::parse( resp.data );
-
             co_return{ resp.code, respJson["args"]["arg"] };
         } catch ( const nlohmann::json::parse_error& e ) {
             std::println(
@@ -134,6 +144,9 @@ private:
             co_return{ 0, "NO DATA" };
         }
     }
+
+private:
+    long long sharedState_{};
 };
 
 }  // namespace postman

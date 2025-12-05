@@ -57,8 +57,7 @@ private:
 };
 
 // The `WorkStealingDeque` class is copied from Google Filament licensed under
-// the Apache License 2.0. See the LICENSE-APACHE file in the root directory of
-// this project for more information.
+// the Apache License 2.0.
 // Original code:
 // https://github.com/google/filament/blob/main/libs/utils/include/utils/WorkStealingDequeue.h
 template <typename T>

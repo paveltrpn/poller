@@ -52,7 +52,7 @@ public:
     auto operator=( Poller&& other ) -> Poller& = delete;
 
     ~Poller() {
-        worker_.wait();
+        wait();
 
         // We already left curl multi loop.
         curl_multi_cleanup( multiHandle_ );
@@ -153,6 +153,12 @@ protected:
                 } while ( msg );
             } while ( stillRunning );
         } );
+    }
+
+    // Wait until all submitted tasks finish.
+    auto wait() -> void {
+        //
+        worker_.wait();
     }
 
 private:
