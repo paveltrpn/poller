@@ -64,16 +64,16 @@ public:
         -> RequestAwaitable<HttpRequest, Task<T>> = delete;
 
     template <TaskParameter T>
-    auto requestAsyncThenable( const HttpRequest& request )
-        -> RequestAwaitable<HttpRequest, ThenableTask<T>> = delete;
+    auto requestAsyncBlocking( const HttpRequest& request )
+        -> RequestAwaitable<HttpRequest, BlockingTask<T>> = delete;
 
     template <TaskParameter T>
     auto requestAsync( HttpRequest&& request )
         -> RequestAwaitable<HttpRequest, Task<T>>;
 
     template <TaskParameter T>
-    auto requestAsyncThenable( HttpRequest&& request )
-        -> RequestAwaitable<HttpRequest, ThenableTask<T>>;
+    auto requestAsyncBlocking( HttpRequest&& request )
+        -> RequestAwaitable<HttpRequest, BlockingTask<T>>;
 
     virtual auto run() -> void = 0;
 
@@ -270,8 +270,8 @@ auto Poller::requestAsync( HttpRequest&& request )
 }
 
 template <TaskParameter T>
-auto Poller::requestAsyncThenable( HttpRequest&& request )
-    -> RequestAwaitable<HttpRequest, ThenableTask<T>> {
+auto Poller::requestAsyncBlocking( HttpRequest&& request )
+    -> RequestAwaitable<HttpRequest, BlockingTask<T>> {
     //
     return { *this, std::move( request ) };
 }

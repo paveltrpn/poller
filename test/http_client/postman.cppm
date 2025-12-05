@@ -49,14 +49,26 @@ export struct PostmanClient final : poller::Poller {
             request( std::move( req ) );
         }
 
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( POSTMAN_ECHO_GET_ARG_STRING );
+            auto resp = requestPromise( std::move( req ) );
+            resp.then( []( std::pair<int, std::string> value ) -> void {
+                //
+                auto [code, data] = value;
+                std::print( "=== thenable value: {} body: {}\n", code, data );
+            } );
+        }
+        submit();
+
 #define NUMBER_OF_PROMISES 3
-        std::vector<poller::Task<std::pair<int, std::string>>> resps;
+        std::vector<poller::BlockingTask<std::pair<int, std::string>>> resps;
         for ( int i = 0; i < NUMBER_OF_PROMISES; ++i ) {
             auto req = poller::HttpRequest{};
 
             req.setUrl( POSTMAN_ECHO_GET_ARG_42 );
 
-            auto resp = requestPromise( std::move( req ) );
+            auto resp = requestPromiseBlocking( std::move( req ) );
 
             resps.emplace_back( std::move( resp ) );
 
@@ -70,17 +82,6 @@ export struct PostmanClient final : poller::Poller {
             auto [code, data] = prom.get();
             std::print( "=== response code: {} body: {}\n", code, data );
         }
-
-        auto req = poller::HttpRequest{};
-        req.setUrl( POSTMAN_ECHO_GET_ARG_STRING );
-        auto resp = requestPromiseThenable( std::move( req ) );
-        resp.then( []( std::pair<int, std::string> value ) -> void {
-            //
-            auto [code, data] = value;
-            std::print( "=== thenable value: {} body: {}\n", code, data );
-        } );
-
-        submit();
     }
 
 private:
@@ -113,9 +114,9 @@ private:
         }
     }
 
-    [[nodiscard]] auto requestPromiseThenable( poller::HttpRequest&& rqst )
-        -> poller::ThenableTask<std::pair<int, std::string>> {
-        auto resp = co_await requestAsyncThenable<std::pair<int, std::string>>(
+    [[nodiscard]] auto requestPromiseBlocking( poller::HttpRequest&& rqst )
+        -> poller::BlockingTask<std::pair<int, std::string>> {
+        auto resp = co_await requestAsyncBlocking<std::pair<int, std::string>>(
             std::move( rqst ) );
 
         try {

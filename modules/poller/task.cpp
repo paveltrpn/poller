@@ -24,8 +24,6 @@ concept TaskParameter =
     std::is_same_v<T, void> || std::is_same_v<T, std::string> ||
     std::is_same_v<T, std::pair<int, std::string>>;
 
-// Task class with get() method, block caller thread and
-// and return value when ready.
 export template <TaskParameter T>
 struct Task {
     using value_type = T;
@@ -35,6 +33,28 @@ struct Task {
 
     struct promise_type {
     public:
+        struct ThenableAwaiter final {
+            // Indicating that an await expression always suspends.
+            [[nodiscard]]
+            auto await_ready() const noexcept -> bool {
+                //
+                return false;
+            }
+
+            auto await_suspend( handle_type handle ) const noexcept -> bool {
+                // If returns true then the coroutine is SUSPENDED, and control
+                // flow returns to the caller of the coroutine.
+                //
+                // If returns false then the coroutine is NOT SUSPENDED after
+                // all, and execution immediately resumes within the same coroutine.
+                return !handle.promise().needToSuspend_;
+            };
+
+            auto await_resume() const noexcept -> void {
+                //
+            };
+        };
+
         auto get_return_object() -> Task {
             //
             return handle_type::from_promise( *this );
@@ -45,14 +65,13 @@ struct Task {
             return {};
         }
 
-        // suspend_always because we call coroutine destroy() which cause
-        // UB if coroutine not in suspention point.
-        auto final_suspend() noexcept -> std::suspend_always {
-            {
-                std::lock_guard<std::mutex> _{ m_ };
-                ready_ = true;
+        auto final_suspend() noexcept -> ThenableAwaiter {
+            if ( thenCb_ ) {
+                // If we reach final suspend point and callback was passed
+                // then call it and signal to not suspend the coroutine
+                thenCb_( payload_ );
+                needToSuspend_ = false;
             }
-            cv_.notify_one();
 
             return {};
         }
@@ -69,10 +88,8 @@ struct Task {
 
     public:
         value_type payload_;
-
-        std::condition_variable cv_;
-        std::mutex m_;
-        bool ready_{};
+        bool needToSuspend_{ true };
+        std::function<void( value_type )> thenCb_{};
 
         std::exception_ptr exception_{ nullptr };
     };
@@ -102,43 +119,21 @@ struct Task {
     Task( const Task& ) = delete;
     auto operator=( const Task& ) -> Task& = delete;
 
-    ~Task() {
-        //
-        detach();
-    }
+    ~Task() = default;
 
-    auto detach() noexcept -> void {
-        if ( empty() ) {
-            return;
-        }
-
-        if ( handle_ ) {
+    auto then( std::function<void( value_type )> cb ) -> void {
+        if ( !handle_.done() ) {
+            // If coroutine not in final suspend point then pass
+            // callback to promise for later call when coroutine
+            // reaches final suspend.
+            handle_.promise().thenCb_ = std::move( cb );
+        } else {
+            // Else if coroutine already reach final suspend then payload_
+            // always ready, we can call callback from here and destroy
+            // coroutine frame.
+            cb( handle_.promise().payload_ );
             handle_.destroy();
-            handle_ = nullptr;
         }
-    }
-
-    [[nodiscard]]
-    auto empty() const noexcept -> bool {
-        //
-        return handle_ == nullptr;
-    }
-
-    explicit operator bool() const noexcept {
-        //
-        return !empty();
-    }
-
-    // Block caller thread until coroutine reach final_suspend()
-    [[nodiscard]]
-    auto get() -> value_type {
-        std::unique_lock<std::mutex> lk{ handle_.promise().m_ };
-        handle_.promise().cv_.wait( lk, [this]() -> bool {
-            //
-            return handle_.promise().ready_;
-        } );
-
-        return handle_.promise().payload_;
     }
 
 private:
@@ -181,8 +176,10 @@ struct Task<void> {
     };
 };
 
+// Task class with get() method, block caller thread and
+// and return value when ready.
 export template <TaskParameter T>
-struct ThenableTask {
+struct BlockingTask {
     using value_type = T;
 
     struct promise_type;
@@ -190,29 +187,7 @@ struct ThenableTask {
 
     struct promise_type {
     public:
-        struct ThenableAwaiter final {
-            // Indicating that an await expression always suspends.
-            [[nodiscard]]
-            auto await_ready() const noexcept -> bool {
-                //
-                return false;
-            }
-
-            auto await_suspend( handle_type handle ) const noexcept -> bool {
-                // If returns true then the coroutine is SUSPENDED, and control
-                // flow returns to the caller of the coroutine.
-                //
-                // If returns false then the coroutine is NOT SUSPENDED after
-                // all, and execution immediately resumes within the same coroutine.
-                return !handle.promise().needToSuspend_;
-            };
-
-            auto await_resume() const noexcept -> void {
-                //
-            };
-        };
-
-        auto get_return_object() -> ThenableTask {
+        auto get_return_object() -> BlockingTask {
             //
             return handle_type::from_promise( *this );
         };
@@ -222,13 +197,14 @@ struct ThenableTask {
             return {};
         }
 
-        auto final_suspend() noexcept -> ThenableAwaiter {
-            if ( thenCb_ ) {
-                // If we reach final suspend point and callback was passed
-                // then call it and signal to not suspend the coroutine
-                thenCb_( payload_ );
-                needToSuspend_ = false;
+        // suspend_always because we call coroutine destroy() which cause
+        // UB if coroutine not in suspention point.
+        auto final_suspend() noexcept -> std::suspend_always {
+            {
+                std::lock_guard<std::mutex> _{ m_ };
+                ready_ = true;
             }
+            cv_.notify_one();
 
             return {};
         }
@@ -245,21 +221,23 @@ struct ThenableTask {
 
     public:
         value_type payload_;
-        bool needToSuspend_{ true };
-        std::function<void( value_type )> thenCb_{};
+
+        std::condition_variable cv_;
+        std::mutex m_;
+        bool ready_{};
 
         std::exception_ptr exception_{ nullptr };
     };
 
-    ThenableTask( handle_type h )
+    BlockingTask( handle_type h )
         : handle_( h ) { /* noop */ }
 
-    ThenableTask( ThenableTask&& t ) noexcept
+    BlockingTask( BlockingTask&& t ) noexcept
         : handle_( t.handle_ ) {
         t.handle_ = nullptr;
     }
 
-    auto operator=( ThenableTask&& other ) noexcept -> ThenableTask& {
+    auto operator=( BlockingTask&& other ) noexcept -> BlockingTask& {
         if ( std::addressof( other ) != this ) {
             if ( handle_ ) {
                 handle_.destroy();
@@ -273,24 +251,46 @@ struct ThenableTask {
     }
 
     // Move only.
-    ThenableTask( const ThenableTask& ) = delete;
-    auto operator=( const ThenableTask& ) -> ThenableTask& = delete;
+    BlockingTask( const BlockingTask& ) = delete;
+    auto operator=( const BlockingTask& ) -> BlockingTask& = delete;
 
-    ~ThenableTask() = default;
+    ~BlockingTask() {
+        //
+        detach();
+    }
 
-    auto then( std::function<void( value_type )> cb ) -> void {
-        if ( !handle_.done() ) {
-            // If coroutine not in final suspend point then pass
-            // callback to promise for later call when coroutine
-            // reaches final suspend.
-            handle_.promise().thenCb_ = std::move( cb );
-        } else {
-            // Else if coroutine already reach final suspend then payload_
-            // always ready, we can call callback from here and destroy
-            // coroutine frame.
-            cb( handle_.promise().payload_ );
-            handle_.destroy();
+    auto detach() noexcept -> void {
+        if ( empty() ) {
+            return;
         }
+
+        if ( handle_ ) {
+            handle_.destroy();
+            handle_ = nullptr;
+        }
+    }
+
+    [[nodiscard]]
+    auto empty() const noexcept -> bool {
+        //
+        return handle_ == nullptr;
+    }
+
+    explicit operator bool() const noexcept {
+        //
+        return !empty();
+    }
+
+    // Block caller thread until coroutine reach final_suspend()
+    [[nodiscard]]
+    auto get() -> value_type {
+        std::unique_lock<std::mutex> lk{ handle_.promise().m_ };
+        handle_.promise().cv_.wait( lk, [this]() -> bool {
+            //
+            return handle_.promise().ready_;
+        } );
+
+        return handle_.promise().payload_;
     }
 
 private:
