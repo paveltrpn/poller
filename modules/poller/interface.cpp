@@ -9,3 +9,4 @@ export import :handle;
 export import :request;
 export import :write_func;
 export import :debug_func;
+export import :reset_event;

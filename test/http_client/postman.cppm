@@ -25,6 +25,18 @@ const std::string POSTMAN_ECHO_GET_ARG_STRING =
 const std::string POSTMAN_ECHO_GET_ARG_42 =
     "https://postman-echo.com/get?arg=42";
 
+const std::string POSTMAN_ECHO_MASTER_STARTED =
+    "https://postman-echo.com/get?arg=master_started";
+
+const std::string POSTMAN_ECHO_SLAVE_STARTED =
+    "https://postman-echo.com/get?arg=slave_started";
+
+const std::string POSTMAN_ECHO_MASTER_REQUEST_JOB =
+    "https://postman-echo.com/get?arg=master_request_job";
+
+const std::string POSTMAN_ECHO_SLAVE_DO_JOB =
+    "https://postman-echo.com/get?arg=slave_do_job";
+
 export struct PostmanClient final : poller::Poller {
     PostmanClient() = default;
 
@@ -84,13 +96,33 @@ export struct PostmanClient final : poller::Poller {
             std::print( "=== response code: {} body: {}\n", code, data );
         }
 
-        // We wait in destructor also.
+        requestMaster();
+        requestSlave();
+
+        submit();
         wait();
 
         std::println( "shared stated touched {} times", sharedState_ );
     }
 
 private:
+    auto parsePostmanGetArg( const std::string& response ) -> std::string {
+        try {
+            const auto respJson = nlohmann::json::parse( response );
+            return respJson["args"]["arg"];
+        } catch ( const nlohmann::json::parse_error& e ) {
+            std::println(
+                "json parse error\n"
+                "message:\t{}\n"
+                "exception id:\t{}\n"
+                "byte position of error:\t{}\n",
+                e.what(), e.id, e.byte );
+
+            return {};
+        }
+    }
+
+    [[maybe_unused]]
     auto request( poller::HttpRequest&& req ) -> poller::Task<void> {
         auto resp = co_await requestAsync<void>( std::move( req ) );
 
@@ -103,50 +135,90 @@ private:
 
     [[nodiscard]] auto requestPromise( poller::HttpRequest&& rqst )
         -> poller::Task<std::pair<int, std::string>> {
+        sharedState_++;
+
         auto resp = co_await requestAsync<std::pair<int, std::string>>(
             std::move( rqst ) );
 
-        sharedState_++;
+        const auto [code, data, headers] = resp;
 
-        try {
-            const auto respJson = nlohmann::json::parse( resp.data );
-            co_return{ resp.code, respJson["args"]["arg"] };
-        } catch ( const nlohmann::json::parse_error& e ) {
-            std::println(
-                "json parse error\n"
-                "message:\t{}\n"
-                "exception id:\t{}\n"
-                "byte position of error:\t{}\n",
-                e.what(), e.id, e.byte );
+        const auto arg = parsePostmanGetArg( data );
 
-            co_return{ 0, "NO DATA" };
-        }
+        co_return{ code, arg };
     }
 
     [[nodiscard]] auto requestPromiseBlocking( poller::HttpRequest&& rqst )
         -> poller::BlockingTask<std::pair<int, std::string>> {
+        sharedState_++;
+
         auto resp = co_await requestAsyncBlocking<std::pair<int, std::string>>(
             std::move( rqst ) );
 
-        sharedState_++;
+        const auto [code, data, headers] = resp;
 
-        try {
-            const auto respJson = nlohmann::json::parse( resp.data );
-            co_return{ resp.code, respJson["args"]["arg"] };
-        } catch ( const nlohmann::json::parse_error& e ) {
-            std::println(
-                "json parse error\n"
-                "message:\t{}\n"
-                "exception id:\t{}\n"
-                "byte position of error:\t{}\n",
-                e.what(), e.id, e.byte );
+        const auto arg = parsePostmanGetArg( data );
 
-            co_return{ 0, "NO DATA" };
+        co_return{ code, arg };
+    }
+
+    auto requestMaster() -> poller::Task<void> {
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( POSTMAN_ECHO_MASTER_STARTED );
+            auto resp = co_await requestAsync<void>( std::move( req ) );
+
+            const auto [code, data, headers] = resp;
+            const auto arg = parsePostmanGetArg( data );
+
+            println( "=== reset event code {}, msg {}", code, arg );
+        }
+
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( POSTMAN_ECHO_MASTER_REQUEST_JOB );
+            auto resp = co_await requestAsync<void>( std::move( req ) );
+
+            masterSlaveBarrier_.set();
+
+            const auto [code, data, headers] = resp;
+            const auto arg = parsePostmanGetArg( data );
+
+            println( "=== reset event code {}, msg {}", code, arg );
+        }
+    }
+
+    auto requestSlave() -> poller::Task<void> {
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( POSTMAN_ECHO_SLAVE_STARTED );
+            auto resp = co_await requestAsync<void>( std::move( req ) );
+
+            const auto [code, data, headers] = resp;
+            const auto arg = parsePostmanGetArg( data );
+
+            println( "=== reset event code {}, msg {}", code, arg );
+        }
+
+        std::println( "=== reset event slave awaits permission..." );
+        co_await masterSlaveBarrier_;
+        std::println( "=== reset event slave got permission!" );
+
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( POSTMAN_ECHO_SLAVE_DO_JOB );
+            auto resp = co_await requestAsync<void>( std::move( req ) );
+
+            const auto [code, data, headers] = resp;
+            const auto arg = parsePostmanGetArg( data );
+
+            println( "=== reset event code {}, msg {}", code, arg );
         }
     }
 
 private:
     long long sharedState_{};
+
+    poller::ResetEvent masterSlaveBarrier_{};
 };
 
 }  // namespace postman
