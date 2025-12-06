@@ -31,11 +31,8 @@ const std::string POSTMAN_ECHO_MASTER_STARTED =
 const std::string POSTMAN_ECHO_SLAVE_STARTED =
     "https://postman-echo.com/get?arg=slave_started";
 
-const std::string POSTMAN_ECHO_MASTER_REQUEST_JOB =
-    "https://postman-echo.com/get?arg=master_request_job";
-
 const std::string POSTMAN_ECHO_SLAVE_DO_JOB =
-    "https://postman-echo.com/get?arg=slave_do_job";
+    "https://postman-echo.com/get?arg=im_totally_done";
 
 export struct PostmanClient final : poller::Poller {
     PostmanClient() = default;
@@ -170,21 +167,17 @@ private:
             const auto [code, data, headers] = resp;
             const auto arg = parsePostmanGetArg( data );
 
-            println( "=== reset event code {}, msg {}", code, arg );
+            println( "=== reset event [ code {}, msg \"{}\" ]", code, arg );
         }
 
-        {
-            auto req = poller::HttpRequest{};
-            req.setUrl( POSTMAN_ECHO_MASTER_REQUEST_JOB );
-            auto resp = co_await requestAsync<void>( std::move( req ) );
+        std::println( "=== reset event [ \"master request job...\" ]" );
+        masterBarrier_.set();
 
-            masterSlaveBarrier_.set();
+        std::println( "=== reset event [ \"master awaits job...\" ]" );
+        co_await slaveBarrier_;
 
-            const auto [code, data, headers] = resp;
-            const auto arg = parsePostmanGetArg( data );
-
-            println( "=== reset event code {}, msg {}", code, arg );
-        }
+        std::println( "=== reset event [ \"master got slave job {}\" ]",
+                      slaveJobPayload_ );
     }
 
     auto requestSlave() -> poller::Task<void> {
@@ -196,12 +189,12 @@ private:
             const auto [code, data, headers] = resp;
             const auto arg = parsePostmanGetArg( data );
 
-            println( "=== reset event code {}, msg {}", code, arg );
+            println( "=== reset event [ code {}, msg \"{}\" ]", code, arg );
         }
 
-        std::println( "=== reset event slave awaits permission..." );
-        co_await masterSlaveBarrier_;
-        std::println( "=== reset event slave got permission!" );
+        std::println( "=== reset event [ \"slave awaits permission...\"] " );
+        co_await masterBarrier_;
+        std::println( "=== reset event [ \"slave got permission\"!] " );
 
         {
             auto req = poller::HttpRequest{};
@@ -209,16 +202,18 @@ private:
             auto resp = co_await requestAsync<void>( std::move( req ) );
 
             const auto [code, data, headers] = resp;
-            const auto arg = parsePostmanGetArg( data );
+            slaveJobPayload_ = parsePostmanGetArg( data );
 
-            println( "=== reset event code {}, msg {}", code, arg );
+            slaveBarrier_.set();
         }
     }
 
 private:
     long long sharedState_{};
 
-    poller::ResetEvent masterSlaveBarrier_{};
+    poller::ResetEvent masterBarrier_{};
+    poller::ResetEvent slaveBarrier_{};
+    std::string slaveJobPayload_{};
 };
 
 }  // namespace postman
