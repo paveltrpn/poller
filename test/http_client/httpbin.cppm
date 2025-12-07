@@ -53,8 +53,6 @@ export struct HttpbinClient final : poller::Poller {
             req.setUrl( HTTPBIN_IP ).gentlyUseV2().bake();
             request( std::move( req ) );
         }
-
-        submit();
     }
 
 private:

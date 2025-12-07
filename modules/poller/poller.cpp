@@ -78,10 +78,11 @@ public:
     virtual auto run() -> void = 0;
 
 protected:
+private:
     auto submit() -> void {
         worker_.submit( [this]() -> void {
-            int msgsLeft{};
-            int stillRunning{};
+            int msgsLeft{ 0 };
+            int stillRunning{ 0 };
 
             do {
                 // Curl perform.
@@ -97,9 +98,11 @@ protected:
                 }
 
                 // Curl poll.
-                {
+                if ( stillRunning ) {
 // TODO: make it part of public api.
 #define MULTI_POLL_TIMEOUT 1000
+                    // Process event on file descriptor or waits until timeout.
+                    // Wait for activity, timeout or "nothing".
                     const auto res = curl_multi_poll(
                         multiHandle_, nullptr, 0, MULTI_POLL_TIMEOUT, nullptr );
 
@@ -156,16 +159,15 @@ protected:
     }
 
     // Wait until all submitted tasks finish.
-    auto wait() -> void {
+    auto wait() const -> void {
         //
         worker_.wait();
     }
 
-private:
     auto performRequest( const HttpRequest& request, CallbackFn cb )
         -> void = delete;
 
-    auto performRequest( HttpRequest&& request, CallbackFn cb ) const -> void {
+    auto performRequest( HttpRequest&& request, CallbackFn cb ) -> void {
         if ( request.isValid() ) {
             // Allocate Requset data. Delete after curl perform actions.
             auto rp = new Payload{ std::move( cb ), {}, {} };
@@ -213,6 +215,9 @@ private:
 
             // Clean request allocated data (headers slist pointer etc.)
             request.clean();
+
+            // Submit new job to working thread queue.
+            submit();
         } else {
             std::println( "poller request not performed, request is invalid!" );
         }
@@ -263,7 +268,7 @@ requires
     }
 
 private:
-    const Poller& client_;
+    Poller& client_;
     request_type request_;
     Result result_;
 };

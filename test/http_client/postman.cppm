@@ -69,8 +69,6 @@ export struct PostmanClient final : poller::Poller {
             } );
         }
 
-        submit();
-
 #define NUMBER_OF_PROMISES 3
         std::vector<poller::BlockingTask<std::pair<int, std::string>>> resps;
         for ( int i = 0; i < NUMBER_OF_PROMISES; ++i ) {
@@ -85,8 +83,6 @@ export struct PostmanClient final : poller::Poller {
             std::print( "=== request {} performed\n", i );
         }
 
-        submit();
-
         for ( auto&& prom : resps ) {
             // Block until get() result!
             auto [code, data] = prom.get();
@@ -96,10 +92,7 @@ export struct PostmanClient final : poller::Poller {
         requestMaster();
         requestSlave();
 
-        submit();
-        wait();
-
-        std::println( "shared stated touched {} times", sharedState_ );
+        std::println( "shared state touched {} times", sharedState_ );
     }
 
 private:
