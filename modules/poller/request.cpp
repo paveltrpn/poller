@@ -77,6 +77,14 @@ export struct HttpRequest {
         return ( *this );
     }
 
+    //TODO: Adopt std::chrono or something...
+    auto setTimeout( long timeout ) -> HttpRequest& {
+        // NOTE: timeout in seconds!
+        handle_.setopt<CURLOPT_TIMEOUT>( timeout );
+
+        return ( *this );
+    }
+
     auto forceUseV2() -> HttpRequest& {
         // This option requires prior knowledge that the server
         // supports HTTP/2 directly, without an HTTP/1.1 Upgrade. If the

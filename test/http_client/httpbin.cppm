@@ -19,6 +19,7 @@ using namespace std::chrono_literals;
 const std::string HTTPBIN_USERAGENT = "http://httpbin.org/user-agent";
 const std::string HTTPBIN_IP = "http://httpbin.org/ip";
 const std::string HTTPBIN_HEADERS = "http://httpbin.org/headers";
+const std::string HTTPBIN_DELAY_2S = "http://httpbin.org/delay/2";
 
 export struct HttpbinClient final : poller::Poller {
     HttpbinClient() = default;
@@ -53,6 +54,12 @@ export struct HttpbinClient final : poller::Poller {
             req.setUrl( HTTPBIN_IP ).gentlyUseV2().bake();
             request( std::move( req ) );
         }
+
+        {
+            auto req = poller::HttpRequest{};
+            req.setUrl( HTTPBIN_DELAY_2S ).setTimeout( 1 ).bake();
+            request( std::move( req ) );
+        }
     }
 
 private:
@@ -61,8 +68,10 @@ private:
 
         const auto [code, data, headers] = resp;
 
-        std::println( "response code: {}\ndata:\n{}\nheaders:\n{}", code, data,
-                      headers );
+        // std::println( "response code: {}\ndata:\n{}\nheaders:\n{}", code, data,
+        // headers );
+
+        std::println( "response code: {}\ndata:\n{}\n", code, data );
     }
 };
 
