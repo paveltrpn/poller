@@ -77,7 +77,6 @@ public:
 
     virtual auto run() -> void = 0;
 
-protected:
 private:
     auto submit() -> void {
         worker_.submit( [this]() -> void {
