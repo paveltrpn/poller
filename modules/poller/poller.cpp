@@ -210,6 +210,10 @@ private:
             //
             // "You can add more easy handles to a multi handle at any
             // point, even if other transfers are already running"
+            //
+            // Daniel Stenberg (narkive.com):
+            // "It is thread-safe, but you can only use the single multi handle in one thread
+            // at a time, not simultanouesly."
             curl_multi_add_handle( multiHandle_, request );
 
             // Clean request allocated data (headers slist pointer etc.)

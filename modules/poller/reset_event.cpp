@@ -11,6 +11,7 @@ namespace poller {
 // "A manual-reset event is a coroutine/thread-synchronization primitive
 // that allows one or more threads to wait until the event is signalled by
 // a thread that calls set()".
+//
 // All comments belongs to author.
 //
 // Original code:
@@ -32,36 +33,36 @@ public:
 
     struct Awaiter {
         explicit Awaiter( const ResetEvent& event ) noexcept
-            : m_event( event ) {
+            : event_( event ) {
             /* noop*/
         }
 
         [[nodiscard]]
         auto await_ready() const noexcept -> bool {
             //
-            return m_event.is_set();
+            return event_.is_set();
         }
 
         auto await_suspend( std::coroutine_handle<> awaitingCoroutine ) noexcept
             -> bool {
             // Special m_state value that indicates the event is in the 'set' state.
-            const void* const setState = &m_event;
+            const void* const setState = &event_;
 
             // Stash the handle of the awaiting coroutine.
-            m_awaitingCoroutine = awaitingCoroutine;
+            awaitingCoroutine_ = awaitingCoroutine;
 
             // Try to atomically push this awaiter onto the front of the list.
-            void* oldValue = m_event.m_state.load( std::memory_order_acquire );
+            void* oldValue = event_.m_state.load( std::memory_order_acquire );
             do {
                 // Resume immediately if already in 'set' state.
                 if ( oldValue == setState ) return false;
 
                 // Update linked list to point at current head.
-                m_next = static_cast<Awaiter*>( oldValue );
+                next_ = static_cast<Awaiter*>( oldValue );
 
                 // Finally, try to swap the old list head, inserting this awaiter
                 // as the new list head.
-            } while ( !m_event.m_state.compare_exchange_weak(
+            } while ( !event_.m_state.compare_exchange_weak(
                 oldValue, this, std::memory_order_release,
                 std::memory_order_acquire ) );
 
@@ -76,9 +77,9 @@ public:
     private:
         friend struct ResetEvent;
 
-        const ResetEvent& m_event;
-        std::coroutine_handle<> m_awaitingCoroutine;
-        Awaiter* m_next;
+        const ResetEvent& event_;
+        std::coroutine_handle<> awaitingCoroutine_;
+        Awaiter* next_;
     };
 
     auto operator co_await() const noexcept -> Awaiter {
@@ -105,8 +106,8 @@ public:
             while ( waiters != nullptr ) {
                 // Read m_next before resuming the coroutine as resuming
                 // the coroutine will likely destroy the awaiter object.
-                auto* next = waiters->m_next;
-                waiters->m_awaitingCoroutine.resume();
+                auto* next = waiters->next_;
+                waiters->awaitingCoroutine_.resume();
                 waiters = next;
             }
         }
