@@ -126,11 +126,25 @@ struct Handle final {
 
     auto isValid() -> bool {
         //
-        return !( handle_ == nullptr );
+        return handle_ != nullptr;
     };
 
+    auto clone() -> CURL* {
+        // This function returns a new curl handle, a duplicate, using
+        // all the options previously set in the input curl handle.
+        // Both handles can subsequently be used independently and they
+        // must both be freed with curl_easy_cleanup.
+        return curl_easy_duphandle( handle_ );
+    }
+
+    auto free() -> void {
+        curl_easy_cleanup( handle_ );
+        handle_ = nullptr;
+    }
+
 private:
-    // CURL itself must be deal with that handle, do nothing in destructor.
+    // CURL itself must be deal with that handle, do
+    // nothing in destructor.
     CURL* handle_{ nullptr };
 };
 
