@@ -113,7 +113,7 @@ private:
     }
 
     [[maybe_unused]]
-    auto request( poller::HttpRequest&& req ) -> poller::Task<void> {
+    auto request( poller::HttpRequest req ) -> poller::Task<void> {
         auto resp = co_await requestAsync<void>( std::move( req ) );
 
         sharedState_++;
@@ -123,7 +123,7 @@ private:
         std::println( "response code: {}\ndata:\n{}", code, data );
     }
 
-    [[nodiscard]] auto requestPromise( poller::HttpRequest&& rqst )
+    [[nodiscard]] auto requestPromise( poller::HttpRequest rqst )
         -> poller::Task<std::pair<int, std::string>> {
         sharedState_++;
 
@@ -137,7 +137,7 @@ private:
         co_return{ code, arg };
     }
 
-    [[nodiscard]] auto requestPromiseBlocking( poller::HttpRequest&& rqst )
+    [[nodiscard]] auto requestPromiseBlocking( poller::HttpRequest rqst )
         -> poller::BlockingTask<std::pair<int, std::string>> {
         sharedState_++;
 

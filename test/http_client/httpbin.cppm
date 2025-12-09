@@ -63,7 +63,7 @@ export struct HttpbinClient final : poller::Poller {
     }
 
 private:
-    auto request( poller::HttpRequest&& req ) -> poller::Task<void> {
+    auto request( poller::HttpRequest req ) -> poller::Task<void> {
         auto resp = co_await requestAsync<void>( std::move( req ) );
 
         const auto [code, data, headers] = resp;

@@ -44,15 +44,12 @@ export struct HttpRequest {
     HttpRequest() = default;
 
     HttpRequest( const HttpRequest& other ) = delete;
+    auto operator=( const HttpRequest& other ) -> HttpRequest& = delete;
 
     HttpRequest( HttpRequest&& other ) noexcept {
         //
         handle_ = std::move( other.handle_ );
     }
-
-    ~HttpRequest() = default;
-
-    auto operator=( const HttpRequest& other ) -> HttpRequest& = delete;
 
     auto operator=( HttpRequest&& other ) noexcept -> HttpRequest& {
         if ( this != &other ) {
@@ -62,6 +59,8 @@ export struct HttpRequest {
         }
         return *this;
     }
+
+    ~HttpRequest() = default;
 
     auto setUrl( const std::string& value ) -> HttpRequest& {
         handle_.setopt<CURLOPT_URL>( value );
