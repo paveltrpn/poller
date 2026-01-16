@@ -20,29 +20,28 @@ constexpr auto kInvoked = 1 << 1;
 // Original code:
 // https://github.com/taskflow/taskflow/blob/master/taskflow/core/tsq.hpp
 template <typename T>
-requires std::is_pointer_v<T> class Array {
+    requires std::is_pointer_v<T>
+class Array {
 public:
     explicit Array( const int capacity )
         : capacity_{ capacity }
         , mask_{ capacity - 1 }
         , buffer_{ new std::atomic<T>[capacity] } {}
 
-    Array( const Array& ) = delete;
-    Array( Array&& ) = delete;
-    Array& operator=( const Array& ) = delete;
-    Array& operator=( Array&& ) = delete;
+    Array( const Array & ) = delete;
+    Array( Array && ) = delete;
+    Array &operator=( const Array & ) = delete;
+    Array &operator=( Array && ) = delete;
     ~Array() noexcept { delete[] buffer_; }
 
-    void Put( const size_t index, T item ) noexcept {
-        buffer_[index & mask_].store( item, std::memory_order_relaxed );
-    }
+    void Put( const size_t index, T item ) noexcept { buffer_[index & mask_].store( item, std::memory_order_relaxed ); }
 
     [[nodiscard]] T Get( const size_t index ) noexcept {
         return buffer_[index & mask_].load( std::memory_order_relaxed );
     }
 
-    [[nodiscard]] Array* Resize( const size_t bottom, const size_t top ) {
-        auto* array = new Array{ 2 * capacity_ };
+    [[nodiscard]] Array *Resize( const size_t bottom, const size_t top ) {
+        auto *array = new Array{ 2 * capacity_ };
         for ( auto i = top; i != bottom; ++i ) {
             array->Put( i, Get( i ) );
         }
@@ -53,7 +52,7 @@ public:
 
 private:
     const int capacity_, mask_;
-    std::atomic<T>* buffer_;
+    std::atomic<T> *buffer_;
 };
 
 // The `WorkStealingDeque` class is copied from Google Filament licensed under
@@ -61,7 +60,8 @@ private:
 // Original code:
 // https://github.com/google/filament/blob/main/libs/utils/include/utils/WorkStealingDequeue.h
 template <typename T>
-requires std::is_pointer_v<T> class WorkStealingDeque {
+    requires std::is_pointer_v<T>
+class WorkStealingDeque {
 public:
     explicit WorkStealingDeque( const int capacity = 1024 )
         : top_{ 0 }
@@ -71,13 +71,13 @@ public:
         garbage_.reserve( 64 );
     }
 
-    WorkStealingDeque( const WorkStealingDeque& ) = delete;
-    WorkStealingDeque( WorkStealingDeque&& ) = delete;
-    WorkStealingDeque& operator=( const WorkStealingDeque& ) = delete;
-    WorkStealingDeque& operator=( WorkStealingDeque&& ) = delete;
+    WorkStealingDeque( const WorkStealingDeque & ) = delete;
+    WorkStealingDeque( WorkStealingDeque && ) = delete;
+    WorkStealingDeque &operator=( const WorkStealingDeque & ) = delete;
+    WorkStealingDeque &operator=( WorkStealingDeque && ) = delete;
 
     ~WorkStealingDeque() noexcept {
-        for ( auto* array : garbage_ ) {
+        for ( auto *array : garbage_ ) {
             delete array;
         }
         delete array_.load();
@@ -89,7 +89,7 @@ public:
         // cannot be concurrent with push().
         const auto bottom = bottom_.load( std::memory_order_relaxed );
         const auto top = top_.load( std::memory_order_acquire );
-        auto* array = array_.load( std::memory_order_relaxed );
+        auto *array = array_.load( std::memory_order_relaxed );
         if ( array->Capacity() - 1 < bottom - top ) {
             array = Resize( array, bottom, top );
         }
@@ -108,12 +108,11 @@ public:
         // QUESTION: does this prevent top_ load below to be reordered before the
         // "store" part of fetch_sub()? Hopefully it does. If not we'd need a full
         // memory barrier.
-        const auto bottom =
-            bottom_.fetch_sub( 1, std::memory_order_seq_cst ) - 1;
+        const auto bottom = bottom_.fetch_sub( 1, std::memory_order_seq_cst ) - 1;
         // bottom could be -1 if we tried to pop() from an empty queue. This will be
         // corrected below.
         assert( bottom >= -1 );
-        auto* array = array_.load( std::memory_order_relaxed );
+        auto *array = array_.load( std::memory_order_relaxed );
         // std::memory_order_seq_cst is needed to guarantee ordering in steal().
         // Note however that this is not a typical acquire operation (i.e. other
         // thread's writes of top_ don't publish data).
@@ -130,9 +129,7 @@ public:
             // Because we know we took the last item, we could be racing with steal()
             // -- the last item being both at the top and bottom of the queue. We
             // resolve this potential race by also stealing that item from ourselves.
-            if ( top_.compare_exchange_strong( top, top + 1,
-                                               std::memory_order_seq_cst,
-                                               std::memory_order_relaxed ) ) {
+            if ( top_.compare_exchange_strong( top, top + 1, std::memory_order_seq_cst, std::memory_order_relaxed ) ) {
                 // Success: we stole our last item from ourselves, meaning that a
                 // concurrent steal() would have failed. top_ now equals top + 1, we
                 // adjust top to make the queue empty.
@@ -166,18 +163,15 @@ public:
         // std::memory_order_acquire is needed because we're acquiring items
         // published in push(). std::memory_order_seq_cst is needed to guarantee
         // ordering in pop().
-        if ( const auto bottom = bottom_.load( std::memory_order_seq_cst );
-             top >= bottom ) {
+        if ( const auto bottom = bottom_.load( std::memory_order_seq_cst ); top >= bottom ) {
             // The queue is empty.
             return nullptr;
         }
 
         // The queue isn't empty.
-        auto* array = array_.load( std::memory_order_acquire );
+        auto *array = array_.load( std::memory_order_acquire );
         const auto item = array->Get( top );
-        if ( !top_.compare_exchange_strong( top, top + 1,
-                                            std::memory_order_seq_cst,
-                                            std::memory_order_relaxed ) ) {
+        if ( !top_.compare_exchange_strong( top, top + 1, std::memory_order_seq_cst, std::memory_order_relaxed ) ) {
             // Failure: the item we just tried to steal was pop()'ed under our feet,
             // simply discard it; nothing to do -- it's okay to try again.
             return nullptr;
@@ -187,9 +181,8 @@ public:
     }
 
 private:
-    [[nodiscard]] Array<T>* Resize( Array<T>* array, const size_t bottom,
-                                    const size_t top ) {
-        auto* tmp = array->Resize( bottom, top );
+    [[nodiscard]] Array<T> *Resize( Array<T> *array, const size_t bottom, const size_t top ) {
+        auto *tmp = array->Resize( bottom, top );
         garbage_.push_back( array );
         std::swap( array, tmp );
         array_.store( array, std::memory_order_release );
@@ -197,14 +190,12 @@ private:
     }
 
 #ifdef __cpp_lib_hardware_interference_size
-    alignas( std::hardware_destructive_interference_size ) std::atomic<int> top_
-        ,
-        bottom_;
+    alignas( std::hardware_destructive_interference_size ) std::atomic<int> top_, bottom_;
 #else
     std::atomic<int> top_, bottom_;
 #endif
-    std::atomic<Array<T>*> array_;
-    std::vector<Array<T>*> garbage_;
+    std::atomic<Array<T> *> array_;
+    std::vector<Array<T> *> garbage_;
 };
 
 // Code below copied from https://github.com/dpuyda/scheduling licensed under the MIT License.
@@ -238,13 +229,11 @@ public:
       *
       * \param func The function to execute.
       */
-    template <typename TaskType,
-              typename = std::enable_if_t<
-                  std::convertible_to<TaskType, std::function<void()>>>>
-    explicit Task( TaskType&& func )
+    template <typename TaskType, typename = std::enable_if_t<std::convertible_to<TaskType, std::function<void()>>>>
+    explicit Task( TaskType &&func )
         : func_{ std::forward<TaskType>( func ) } {}
 
-    Task( const Task& other )
+    Task( const Task &other )
         : total_predecessors_{ other.total_predecessors_ }
         , func_{ other.func_ }
         , next_{ other.next_ } {
@@ -252,7 +241,7 @@ public:
         cancellation_flags_.store( other.cancellation_flags_ );
     }
 
-    Task( Task&& other ) noexcept
+    Task( Task &&other ) noexcept
         : total_predecessors_{ other.total_predecessors_ }
         , func_{ std::move( other.func_ ) }
         , next_{ std::move( other.next_ ) } {
@@ -260,7 +249,7 @@ public:
         cancellation_flags_.store( other.cancellation_flags_ );
     }
 
-    Task& operator=( const Task& other ) {
+    Task &operator=( const Task &other ) {
         total_predecessors_ = other.total_predecessors_;
         remaining_predecessors_.store( other.remaining_predecessors_ );
         cancellation_flags_.store( other.cancellation_flags_ );
@@ -269,7 +258,7 @@ public:
         return *this;
     }
 
-    Task& operator=( Task&& other ) noexcept {
+    Task &operator=( Task &&other ) noexcept {
         total_predecessors_ = other.total_predecessors_;
         remaining_predecessors_.store( other.remaining_predecessors_ );
         cancellation_flags_.store( other.cancellation_flags_ );
@@ -285,7 +274,7 @@ public:
       *
       * \param task A task that should be executed before the current task.
       */
-    void Succeed( Task* task ) {
+    void Succeed( Task *task ) {
         task->next_.push_back( this );
         ++total_predecessors_;
         remaining_predecessors_.fetch_add( 1 );
@@ -297,7 +286,7 @@ public:
       * \param task, tasks Tasks that should be executed before the current task.
       */
     template <typename... TasksType>
-    void Succeed( Task* task, const TasksType&... tasks ) {
+    void Succeed( Task *task, const TasksType &...tasks ) {
         task->next_.push_back( this );
         ++total_predecessors_;
         remaining_predecessors_.fetch_add( 1 );
@@ -309,7 +298,7 @@ public:
       *
       * \param task A task that should be executed after the current task.
       */
-    void Precede( Task* task ) {
+    void Precede( Task *task ) {
         next_.push_back( task );
         ++task->total_predecessors_;
         task->remaining_predecessors_.fetch_add( 1 );
@@ -321,7 +310,7 @@ public:
       * \param task, tasks Tasks that should be executed after the current task.
       */
     template <typename... TasksType>
-    void Precede( Task* task, const TasksType&... tasks ) {
+    void Precede( Task *task, const TasksType &...tasks ) {
         next_.push_back( task );
         ++task->total_predecessors_;
         task->remaining_predecessors_.fetch_add( 1 );
@@ -341,9 +330,7 @@ public:
       * \return `false` if the task has been invoked earlier or will be invoked at
       * least once after the cancellation, `true` otherwise.
       */
-    bool Cancel() {
-        return ( cancellation_flags_.fetch_or( kCancelled ) & kInvoked ) == 0;
-    }
+    bool Cancel() { return ( cancellation_flags_.fetch_or( kCancelled ) & kInvoked ) == 0; }
 
     /**
       * \brief Clears cancellation flags.
@@ -360,7 +347,7 @@ private:
     int total_predecessors_{ 0 };
     std::atomic<int> remaining_predecessors_{ 0 }, cancellation_flags_{ 0 };
     std::function<void()> func_;
-    std::vector<Task*> next_;
+    std::vector<Task *> next_;
 };
 
 /**
@@ -381,8 +368,7 @@ public:
       *
       * \param threads_count The number of threads to create.
       */
-    explicit ThreadPool(
-        const unsigned threads_count = std::thread::hardware_concurrency() )
+    explicit ThreadPool( const unsigned threads_count = std::thread::hardware_concurrency() )
         : queues_count_{ threads_count + 1 }
         , queues_{ threads_count + 1 } {
         threads_.reserve( threads_count );
@@ -391,17 +377,17 @@ public:
         }
     }
 
-    ThreadPool( const ThreadPool& ) = delete;
-    ThreadPool( ThreadPool&& ) = delete;
-    auto operator=( const ThreadPool& ) -> ThreadPool& = delete;
-    auto operator=( ThreadPool&& ) -> ThreadPool& = delete;
+    ThreadPool( const ThreadPool & ) = delete;
+    ThreadPool( ThreadPool && ) = delete;
+    auto operator=( const ThreadPool & ) -> ThreadPool & = delete;
+    auto operator=( ThreadPool && ) -> ThreadPool & = delete;
 
     ~ThreadPool() noexcept {
         wait();
         stop_.test_and_set();
         tasks_count_ += queues_count_;
         tasks_count_.notify_all();
-        for ( auto& thread : threads_ ) {
+        for ( auto &thread : threads_ ) {
             thread.join();
         }
     }
@@ -422,11 +408,9 @@ public:
       *
       * \param func The function to execute.
       */
-    template <typename FuncType,
-              typename = std::enable_if_t<
-                  std::convertible_to<FuncType, std::function<void()>>>>
-    auto submit( FuncType&& func ) -> void {
-        auto* task = new Task( std::forward<FuncType>( func ) );
+    template <typename FuncType, typename = std::enable_if_t<std::convertible_to<FuncType, std::function<void()>>>>
+    auto submit( FuncType &&func ) -> void {
+        auto *task = new Task( std::forward<FuncType>( func ) );
         task->delete_ = true;
         submit( task );
     }
@@ -442,7 +426,7 @@ public:
       *
       * \param task The task to execute.
       */
-    auto submit( Task* task ) -> void {
+    auto submit( Task *task ) -> void {
         ++tasks_count_;
         queues_[index_].Push( task );
         tasks_count_.notify_one();
@@ -459,11 +443,11 @@ public:
       * \param tasks The tasks to execute.
       */
     template <typename TasksType>
-    auto submit( TasksType& tasks ) -> void {
-        for ( auto& task : tasks ) {
+    auto submit( TasksType &tasks ) -> void {
+        for ( auto &task : tasks ) {
             task.is_root_ = task.total_predecessors_ == 0;
         }
-        for ( auto& task : tasks ) {
+        for ( auto &task : tasks ) {
             if ( task.is_root_ ) {
                 Submit( &task );
             }
@@ -484,9 +468,9 @@ public:
       * be continued.
       */
     template <typename PredicateType>
-    auto wait( const PredicateType& predicate ) -> void {
+    auto wait( const PredicateType &predicate ) -> void {
         while ( !predicate() ) {
-            if ( auto* task = getTask() ) {
+            if ( auto *task = getTask() ) {
                 execute( task );
             }
         }
@@ -508,11 +492,10 @@ private:
     auto run( const unsigned i ) -> void {
         index_ = i;
         for ( auto attempts = 0;; ) {
-            if ( constexpr auto max_attempts = 100;
-                 ++attempts > max_attempts ) {
+            if ( constexpr auto max_attempts = 100; ++attempts > max_attempts ) {
                 tasks_count_.wait( 0 );
             }
-            if ( auto* task = getTask() ) {
+            if ( auto *task = getTask() ) {
                 execute( task );
                 attempts = 0;
             } else if ( stop_.test() ) {
@@ -521,8 +504,8 @@ private:
         }
     }
 
-    auto execute( Task* task ) -> void {
-        for ( Task* next = nullptr; task; next = nullptr ) {
+    auto execute( Task *task ) -> void {
+        for ( Task *next = nullptr; task; next = nullptr ) {
             task->remaining_predecessors_.store( task->total_predecessors_ );
             if ( task->cancellation_flags_.fetch_or( kInvoked ) & kCancelled ) {
                 break;
@@ -552,9 +535,9 @@ private:
         }
     }
 
-    auto getTask() -> Task* {
+    auto getTask() -> Task * {
         const auto i = index_;
-        auto* task = queues_[i].Pop();
+        auto *task = queues_[i].Pop();
         if ( task ) {
             return task;
         }
@@ -575,7 +558,7 @@ private:
     std::atomic<unsigned> tasks_count_;
 
     std::vector<std::thread> threads_;
-    std::vector<WorkStealingDeque<Task*>> queues_;
+    std::vector<WorkStealingDeque<Task *>> queues_;
 };
 
 inline thread_local unsigned ThreadPool::index_{ 0 };

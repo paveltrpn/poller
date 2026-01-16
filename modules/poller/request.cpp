@@ -47,14 +47,15 @@ export struct HttpRequest {
     auto operator=( const HttpRequest& other ) -> HttpRequest& = delete;
 
     HttpRequest( HttpRequest&& other ) noexcept {
-        //
-        handle_ = std::move( other.handle_ );
+        this->handle_ = std::move( other.handle_ );
+        this->headers_ = other.headers_;
+        other.headers_ = nullptr;
     }
 
     auto operator=( HttpRequest&& other ) noexcept -> HttpRequest& {
         if ( this != &other ) {
-            handle_ = std::move( other.handle_ );
-            headers_ = other.headers_;
+            this->handle_ = std::move( other.handle_ );
+            this->headers_ = other.headers_;
             other.headers_ = nullptr;
         }
         return *this;

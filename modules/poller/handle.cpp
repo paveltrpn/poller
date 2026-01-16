@@ -73,8 +73,8 @@ struct Handle final {
 
     auto operator=( Handle&& other ) noexcept -> Handle& {
         if ( this != &other ) {
-            curl_easy_cleanup( handle_ );
-            handle_ = other.handle_;
+            this->free();
+            this->handle_ = other.handle_;
             other.handle_ = nullptr;
         }
         return *this;
