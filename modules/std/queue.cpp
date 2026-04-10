@@ -25,10 +25,10 @@ public:
         //power of 2");
     }
 
-    spsc_lock_free_queue( const spsc_lock_free_queue& ) = delete;
-    spsc_lock_free_queue& operator=( const spsc_lock_free_queue& ) = delete;
+    spsc_lock_free_queue( const spsc_lock_free_queue & ) = delete;
+    spsc_lock_free_queue &operator=( const spsc_lock_free_queue & ) = delete;
 
-    auto push( const T& item ) -> bool {
+    auto push( const T &item ) -> bool {
         std::size_t next_tail = ( tail_ + 1 ) & ( capacity_ - 1 );
         std::size_t tail = tail_.load( std::memory_order_relaxed );
         if ( next_tail != head_.load( std::memory_order_acquire ) ) {
@@ -39,14 +39,13 @@ public:
         return false;
     }
 
-    auto pop( T& item ) -> bool {
+    auto pop( T &item ) -> bool {
         std::size_t head = head_.load( std::memory_order_relaxed );
         if ( head == tail_.load( std::memory_order_acquire ) ) {
             return false;
         }
         item = buffer_[head];
-        head_.store( ( head + 1 ) & ( capacity_ - 1 ),
-                     std::memory_order_release );
+        head_.store( ( head + 1 ) & ( capacity_ - 1 ), std::memory_order_release );
         return true;
     }
 
@@ -65,7 +64,7 @@ public:
         : capacity_{ capacity }
         , buffer_( capacity ) {}
 
-    auto push( const T& item ) -> void {
+    auto push( const T &item ) -> void {
         std::unique_lock<std::mutex> lock( mtx_ );
         not_full_.wait( lock, [this] { return !is_full(); } );
         buffer_[tail_] = item;
@@ -74,7 +73,7 @@ public:
         not_empty_.notify_one();
     }
 
-    auto try_push( const T& item ) -> bool {
+    auto try_push( const T &item ) -> bool {
         std::unique_lock<std::mutex> lock( mtx_, std::try_to_lock );
         if ( !lock || is_full() ) {
             return false;
@@ -86,7 +85,7 @@ public:
         return true;
     }
 
-    auto pop( T& item ) -> void {
+    auto pop( T &item ) -> void {
         std::unique_lock<std::mutex> lock( mtx_ );
         not_empty_.wait( lock, [this] { return !is_empty(); } );
         item = buffer_[head_];
@@ -95,7 +94,7 @@ public:
         not_full_.notify_one();
     }
 
-    auto try_pop( T& item ) -> bool {
+    auto try_pop( T &item ) -> bool {
         std::unique_lock<std::mutex> lock( mtx_, std::try_to_lock );
         if ( !lock || is_empty() ) {
             return false;
@@ -108,17 +107,11 @@ public:
     }
 
 private:
-    [[nodiscard]] auto next( std::size_t idx ) const noexcept -> size_t {
-        return ( ( idx + 1 ) % capacity_ );
-    }
+    [[nodiscard]] auto next( std::size_t idx ) const noexcept -> size_t { return ( ( idx + 1 ) % capacity_ ); }
 
-    [[nodiscard]] auto is_empty() const noexcept -> bool {
-        return ( head_ == tail_ );
-    }
+    [[nodiscard]] auto is_empty() const noexcept -> bool { return ( head_ == tail_ ); }
 
-    [[nodiscard]] auto is_full() const noexcept -> bool {
-        return ( next( tail_ ) == head_ );
-    }
+    [[nodiscard]] auto is_full() const noexcept -> bool { return ( next( tail_ ) == head_ ); }
 
 private:
     std::mutex mtx_;
@@ -139,7 +132,7 @@ public:
         , capacity_{ capacity }
         , buffer_( capacity ) {}
 
-    auto push( const T& item ) -> void {
+    auto push( const T &item ) -> void {
         sem_empty_.acquire();
         std::unique_lock<std::mutex> lock( mtx_ );
         buffer_[tail_] = item;
@@ -148,7 +141,7 @@ public:
         sem_full_.release();
     }
 
-    auto try_push( const T& item ) -> bool {
+    auto try_push( const T &item ) -> bool {
         if ( !sem_empty_.try_acquire() ) {
             return false;
         }
@@ -161,7 +154,7 @@ public:
         return true;
     }
 
-    auto pop( T& item ) -> void {
+    auto pop( T &item ) -> void {
         sem_full_.acquire();
         std::unique_lock<std::mutex> lock( mtx_ );
         item = buffer_[head_];
@@ -170,7 +163,7 @@ public:
         sem_empty_.release();
     }
 
-    auto try_pop( T& item ) -> bool {
+    auto try_pop( T &item ) -> bool {
         if ( !sem_full_.try_acquire() ) {
             return false;
         }
@@ -183,9 +176,7 @@ public:
     }
 
 private:
-    [[nodiscard]] auto next( std::size_t idx ) const noexcept -> size_t {
-        return ( ( idx + 1 ) % capacity_ );
-    }
+    [[nodiscard]] auto next( std::size_t idx ) const noexcept -> size_t { return ( ( idx + 1 ) % capacity_ ); }
 
 private:
     std::mutex mtx_;

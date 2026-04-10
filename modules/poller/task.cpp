@@ -21,8 +21,7 @@ namespace poller {
 
 export template <typename T>
 concept TaskParameter =
-    std::is_same_v<T, void> || std::is_same_v<T, std::string> ||
-    std::is_same_v<T, std::pair<int, std::string>>;
+  std::is_same_v<T, void> || std::is_same_v<T, std::string> || std::is_same_v<T, std::pair<int, std::string>>;
 
 export template <TaskParameter T>
 struct Task {
@@ -97,12 +96,12 @@ struct Task {
     Task( handle_type h )
         : handle_( h ) { /* noop */ }
 
-    Task( Task&& t ) noexcept
+    Task( Task &&t ) noexcept
         : handle_( t.handle_ ) {
         t.handle_ = nullptr;
     }
 
-    auto operator=( Task&& other ) noexcept -> Task& {
+    auto operator=( Task &&other ) noexcept -> Task & {
         if ( std::addressof( other ) != this ) {
             if ( handle_ ) {
                 handle_.destroy();
@@ -116,8 +115,8 @@ struct Task {
     }
 
     // Move only.
-    Task( const Task& ) = delete;
-    auto operator=( const Task& ) -> Task& = delete;
+    Task( const Task & ) = delete;
+    auto operator=( const Task & ) -> Task & = delete;
 
     ~Task() = default;
 
@@ -252,12 +251,12 @@ struct BlockingTask {
     BlockingTask( handle_type h )
         : handle_( h ) { /* noop */ }
 
-    BlockingTask( BlockingTask&& t ) noexcept
+    BlockingTask( BlockingTask &&t ) noexcept
         : handle_( t.handle_ ) {
         t.handle_ = nullptr;
     }
 
-    auto operator=( BlockingTask&& other ) noexcept -> BlockingTask& {
+    auto operator=( BlockingTask &&other ) noexcept -> BlockingTask & {
         if ( std::addressof( other ) != this ) {
             if ( handle_ ) {
                 handle_.destroy();
@@ -271,8 +270,8 @@ struct BlockingTask {
     }
 
     // Move only.
-    BlockingTask( const BlockingTask& ) = delete;
-    auto operator=( const BlockingTask& ) -> BlockingTask& = delete;
+    BlockingTask( const BlockingTask & ) = delete;
+    auto operator=( const BlockingTask & ) -> BlockingTask & = delete;
 
     ~BlockingTask() {
         //
@@ -312,7 +311,7 @@ struct BlockingTask {
             } );
         }
 
-        auto&& payload = std::move( handle_.promise().payload_ );
+        auto &&payload = std::move( handle_.promise().payload_ );
         detach();
 
         return payload;

@@ -20,28 +20,23 @@ namespace postman {
 using namespace std::chrono_literals;
 
 const std::string POSTMAN_ECHO_GET = "https://postman-echo.com/get";
-const std::string POSTMAN_ECHO_GET_ARG_STRING =
-    "https://postman-echo.com/get?arg=good_to_see_some_string_here";
-const std::string POSTMAN_ECHO_GET_ARG_42 =
-    "https://postman-echo.com/get?arg=42";
+const std::string POSTMAN_ECHO_GET_ARG_STRING = "https://postman-echo.com/get?arg=good_to_see_some_string_here";
+const std::string POSTMAN_ECHO_GET_ARG_42 = "https://postman-echo.com/get?arg=42";
 
-const std::string POSTMAN_ECHO_MASTER_STARTED =
-    "https://postman-echo.com/get?arg=master_started";
+const std::string POSTMAN_ECHO_MASTER_STARTED = "https://postman-echo.com/get?arg=master_started";
 
-const std::string POSTMAN_ECHO_SLAVE_STARTED =
-    "https://postman-echo.com/get?arg=slave_started";
+const std::string POSTMAN_ECHO_SLAVE_STARTED = "https://postman-echo.com/get?arg=slave_started";
 
-const std::string POSTMAN_ECHO_SLAVE_DO_JOB =
-    "https://postman-echo.com/get?arg=im_totally_done";
+const std::string POSTMAN_ECHO_SLAVE_DO_JOB = "https://postman-echo.com/get?arg=im_totally_done";
 
 export struct PostmanClient final : poller::Poller {
     PostmanClient() = default;
 
-    PostmanClient( const PostmanClient& other ) = delete;
-    PostmanClient( PostmanClient&& other ) = delete;
+    PostmanClient( const PostmanClient &other ) = delete;
+    PostmanClient( PostmanClient &&other ) = delete;
 
-    auto operator=( const PostmanClient& other ) -> PostmanClient& = delete;
-    auto operator=( PostmanClient&& other ) -> PostmanClient& = delete;
+    auto operator=( const PostmanClient &other ) -> PostmanClient & = delete;
+    auto operator=( PostmanClient &&other ) -> PostmanClient & = delete;
 
     ~PostmanClient() = default;
 
@@ -83,7 +78,7 @@ export struct PostmanClient final : poller::Poller {
             std::print( "=== request {} performed\n", i );
         }
 
-        for ( auto&& prom : resps ) {
+        for ( auto &&prom : resps ) {
             // Block until get() result!
             auto [code, data] = prom.get();
             std::print( "=== response code: {} body: {}\n", code, data );
@@ -96,17 +91,17 @@ export struct PostmanClient final : poller::Poller {
     }
 
 private:
-    auto parsePostmanGetArg( const std::string& response ) -> std::string {
+    auto parsePostmanGetArg( const std::string &response ) -> std::string {
         try {
             const auto respJson = nlohmann::json::parse( response );
             return respJson["args"]["arg"];
-        } catch ( const nlohmann::json::parse_error& e ) {
+        } catch ( const nlohmann::json::parse_error &e ) {
             std::println(
-                "json parse error\n"
-                "message:\t{}\n"
-                "exception id:\t{}\n"
-                "byte position of error:\t{}\n",
-                e.what(), e.id, e.byte );
+              "json parse error\n"
+              "message:\t{}\n"
+              "exception id:\t{}\n"
+              "byte position of error:\t{}\n",
+              e.what(), e.id, e.byte );
 
             return {};
         }
@@ -123,32 +118,29 @@ private:
         std::println( "response code: {}\ndata:\n{}", code, data );
     }
 
-    [[nodiscard]] auto requestPromise( poller::HttpRequest rqst )
-        -> poller::Task<std::pair<int, std::string>> {
+    [[nodiscard]] auto requestPromise( poller::HttpRequest rqst ) -> poller::Task<std::pair<int, std::string>> {
         sharedState_++;
 
-        auto resp = co_await requestAsync<std::pair<int, std::string>>(
-            std::move( rqst ) );
+        auto resp = co_await requestAsync<std::pair<int, std::string>>( std::move( rqst ) );
 
         const auto [code, data, headers] = resp;
 
         const auto arg = parsePostmanGetArg( data );
 
-        co_return{ code, arg };
+        co_return { code, arg };
     }
 
     [[nodiscard]] auto requestPromiseBlocking( poller::HttpRequest rqst )
-        -> poller::BlockingTask<std::pair<int, std::string>> {
+      -> poller::BlockingTask<std::pair<int, std::string>> {
         sharedState_++;
 
-        auto resp = co_await requestAsyncBlocking<std::pair<int, std::string>>(
-            std::move( rqst ) );
+        auto resp = co_await requestAsyncBlocking<std::pair<int, std::string>>( std::move( rqst ) );
 
         const auto [code, data, headers] = resp;
 
         const auto arg = parsePostmanGetArg( data );
 
-        co_return{ code, arg };
+        co_return { code, arg };
     }
 
     auto requestMaster() -> poller::Task<void> {
@@ -169,8 +161,7 @@ private:
         std::println( "=== reset event [ \"master awaits job...\" ]" );
         co_await slaveBarrier_;
 
-        std::println( "=== reset event [ \"master got slave job {}\" ]",
-                      slaveJobPayload_ );
+        std::println( "=== reset event [ \"master got slave job {}\" ]", slaveJobPayload_ );
     }
 
     auto requestSlave() -> poller::Task<void> {
