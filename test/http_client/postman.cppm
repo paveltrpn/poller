@@ -152,7 +152,7 @@ private:
             const auto [code, data, headers] = resp;
             const auto arg = parsePostmanGetArg( data );
 
-            println( "=== reset event [ code {}, msg \"{}\" ]", code, arg );
+            std::println( "=== reset event [ code {}, msg \"{}\" ]", code, arg );
         }
 
         std::println( "=== reset event [ \"master request job...\" ]" );
@@ -173,7 +173,7 @@ private:
             const auto [code, data, headers] = resp;
             const auto arg = parsePostmanGetArg( data );
 
-            println( "=== reset event [ code {}, msg \"{}\" ]", code, arg );
+            std::println( "=== reset event [ code {}, msg \"{}\" ]", code, arg );
         }
 
         std::println( "=== reset event [ \"slave awaits permission...\"] " );
