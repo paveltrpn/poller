@@ -69,4 +69,15 @@ target_sources(raw
     ${MOD_RAW_SRC}
 )
 
+# ================================
+# Module io
+# ================================
+add_library(io)
+file(GLOB MOD_IO_SRC "modules/io/*.cpp")
+target_sources(io
+    PUBLIC FILE_SET CXX_MODULES FILES
+    ${MOD_IO_SRC}
+)
+target_link_libraries(io uv)
+
 add_subdirectory(test)
