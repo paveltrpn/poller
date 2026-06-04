@@ -18,5 +18,11 @@ target_link_libraries(httpbin poller curl)
 add_executable(socket_test
     raw/socket.cpp
 )
+
+add_executable(uvtcp
+    uvtcp/uvtcp.cpp
+)
+target_link_libraries(uvtcp uv)
+
 target_link_libraries(socket_test raw)
 
