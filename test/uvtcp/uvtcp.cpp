@@ -28,7 +28,7 @@ static void alloc_buffer( uv_handle_t *handle, size_t size, uv_buf_t *buf ) {
     char *base;
     base = (char *)calloc( 1, size );
     if ( !base )
-        *buf = uv_buf_init( NULL, 0 );
+        *buf = uv_buf_init( nullptr, 0 );
     else
         *buf = uv_buf_init( base, size );
 }
@@ -56,7 +56,7 @@ static void close_data( struct client_request_data *data ) {
  *  Callback for when the TCP write is complete
  */
 static void on_write_end( uv_write_t *req, int status ) {
-    struct client_request_data *data;
+    struct client_request_data *data{};
     data = static_cast<client_request_data *>( req->data );
     close_data( data );
 }
@@ -66,7 +66,7 @@ static void on_write_end( uv_write_t *req, int status ) {
  * request
  */
 static void after_process_command( uv_work_t *req, int status ) {
-    struct client_request_data *data;
+    struct client_request_data *data{};
     data = static_cast<client_request_data *>( req->data );
     uv_buf_t buf = uv_buf_init( data->response, strlen( data->response ) + 1 );
     data->write_req = static_cast<uv_write_t *>( malloc( sizeof( *data->write_req ) ) );
@@ -79,8 +79,8 @@ static void after_process_command( uv_work_t *req, int status ) {
  * Callback for doing the actual work.
  */
 static void process_command( uv_work_t *req ) {
-    struct client_request_data *data;
-    char *x;
+    struct client_request_data *data{};
+    char *x{};
     data = static_cast<client_request_data *>( req->data );
     // Do the actual time-consuming request processing here
     data->response = strdup( "Hello World, work's done\n" );
@@ -88,11 +88,15 @@ static void process_command( uv_work_t *req ) {
 
 /* Callback for read function, called multiple times per request */
 static void read_cb( uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf ) {
-    uv_tcp_t *client;
-    struct client_request_data *data;
-    char *tmp;
-    client = (uv_tcp_t *)stream;
+    uv_tcp_t *client{};
+    struct client_request_data *data{};
+    char *tmp{};
+
+    // NOTE: plain c-style cast in previous.
+    client = reinterpret_cast<uv_tcp_t *>( stream );
+
     data = static_cast<client_request_data *>( stream->data );
+
     if ( nread == -1 || nread == UV_EOF ) {
         free( buf->base );
         uv_timer_stop( data->timer );
@@ -124,7 +128,7 @@ static void read_cb( uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf ) {
 
 /* Callback for the timer which signifies a timeout */
 static void client_timeout_cb( uv_timer_t *handle ) {
-    struct client_request_data *data;
+    struct client_request_data *data{};
     data = (struct client_request_data *)handle->data;
     uv_timer_stop( handle );
     if ( data->work_started ) return;
@@ -138,7 +142,7 @@ static void connection_cb( uv_stream_t *server, int status ) {
         return;
     }
     data = static_cast<client_request_data *>( calloc( 1, sizeof( *data ) ) );
-    data->start = time( NULL );
+    data->start = time( nullptr );
     auto client = static_cast<uv_tcp_t *>( malloc( sizeof( uv_tcp_t ) ) );
     client->data = data;
     data->client = client;
@@ -161,7 +165,7 @@ static void connection_cb( uv_stream_t *server, int status ) {
 
 auto main( int argc, char **argv ) -> int {
     loop = uv_default_loop();
-    struct sockaddr_in addr;
+    struct sockaddr_in addr{};
     uv_ip4_addr( "0.0.0.0", 10000, &addr ); /* initialize the server */
     uv_tcp_init( loop, &server );
     /* bind the server to the address above */
