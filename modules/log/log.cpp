@@ -9,7 +9,7 @@ module;
 
 export module log:log;
 
-namespace tire::log {
+namespace poller::log {
 
 /*
  * Example - "\033[1;32m[info] \033[0m"
@@ -198,4 +198,4 @@ export {
     }
 }
 
-}  // namespace tire::log
+}  // namespace poller::log

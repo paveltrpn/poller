@@ -9,7 +9,7 @@ module;
 
 export module io:queue;
 
-namespace tire::io {
+namespace poller::io {
 
 // Single producer single consumer lock-free queue.
 template <typename T>
@@ -187,4 +187,4 @@ private:
     std::vector<T> buffer_;
 };
 
-}  // namespace tire::io
+}  // namespace poller::io

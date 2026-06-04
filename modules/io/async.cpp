@@ -10,7 +10,7 @@ export module io:async;
 
 import log;
 
-namespace tire::io {
+namespace poller::io {
 
 export template <typename T>
 struct Task;
@@ -196,4 +196,4 @@ struct FilesystemWatchAwaitable final {
     uv_fs_event event_{};
 };
 
-}  // namespace tire::io
+}  // namespace poller::io

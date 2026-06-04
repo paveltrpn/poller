@@ -12,7 +12,7 @@ import log;
 
 import :list;
 
-namespace tire::io {
+namespace poller::io {
 
 struct EventScheduler {
     EventScheduler()
@@ -120,4 +120,4 @@ private:
     bool run_{ false };
 };
 
-}  // namespace tire::io
+}  // namespace poller::io
