@@ -38,6 +38,16 @@ endif()
 set(CMAKE_CXX_STANDARD 26)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON )
 
+# ================================
+# Module log
+# ================================
+file(GLOB MOD_LOG_SRC "modules/log/*.cpp")
+add_library(log)
+target_sources(log
+    PUBLIC FILE_SET CXX_MODULES FILES
+    ${MOD_LOG_SRC}
+)
+
 # Module poller
 # ================================
 file(GLOB MOD_POLLER_SRC  modules/poller/*.cpp )
@@ -78,6 +88,6 @@ target_sources(io
     PUBLIC FILE_SET CXX_MODULES FILES
     ${MOD_IO_SRC}
 )
-target_link_libraries(io uv)
+target_link_libraries(io log uv)
 
 add_subdirectory(test)
