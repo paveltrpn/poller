@@ -21,12 +21,29 @@ struct Task<void> {
     using handle_type = std::coroutine_handle<promise_type>;
 
     struct promise_type {
-        Task get_return_object() { return Task<void>{ handle_type::from_promise( *this ) }; };
+        auto get_return_object() -> Task {
+            //
+            return Task<void>{ handle_type::from_promise( *this ) };
+        };
 
-        auto initial_suspend() noexcept { return std::suspend_never{}; }
-        auto final_suspend() noexcept { return std::suspend_never{}; }
-        void return_void() {}
-        void unhandled_exception() { exception_ = std::current_exception(); }
+        auto initial_suspend() noexcept {
+            //
+            return std::suspend_never{};
+        }
+
+        auto final_suspend() noexcept {
+            //
+            return std::suspend_never{};
+        }
+
+        auto return_void() -> void {
+            //
+        }
+
+        auto unhandled_exception() -> void {
+            //
+            exception_ = std::current_exception();
+        }
 
         std::exception_ptr exception_{ nullptr };
         bool scheduleDestroy_{ false };
@@ -42,7 +59,7 @@ struct Task<void> {
         t.handle_ = nullptr;
     }
 
-    Task &operator=( Task &&other ) noexcept {
+    auto operator=( Task &&other ) noexcept -> Task & {
         if ( std::addressof( other ) != this ) {
             // Destroy this handle, but it allowed only when
             // coroutine is suspended.
@@ -58,11 +75,11 @@ struct Task<void> {
     }
 
     Task( const Task & ) = delete;
-    Task &operator=( const Task & ) = delete;
+    auto operator=( const Task & ) -> Task & = delete;
 
     ~Task() = default;
 
-    void detach() noexcept {
+    auto detach() noexcept -> void {
         if ( empty() ) {
             return;
         }
@@ -73,11 +90,20 @@ struct Task<void> {
         }
     }
 
-    [[nodiscard]] constexpr bool empty() const noexcept { return handle_ == nullptr; }
+    [[nodiscard]] constexpr auto empty() const noexcept -> bool {
+        //
+        return handle_ == nullptr;
+    }
 
-    constexpr explicit operator bool() const noexcept { return !empty(); }
+    constexpr explicit operator bool() const noexcept {
+        //
+        return !empty();
+    }
 
-    void scheduleDestroy() { handle_.promise().scheduleDestroy_ = true; };
+    auto scheduleDestroy() -> void {
+        //
+        handle_.promise().scheduleDestroy_ = true;
+    };
 
 private:
     handle_type handle_{ nullptr };
@@ -128,13 +154,13 @@ struct TimeoutAwaitable final {
 
 template <typename T>
 struct FilesystemWatchAwaitable final {
-    FilesystemWatchAwaitable( uv_loop_t *loop, const std::string &path )
+    FilesystemWatchAwaitable( uv_loop_t *loop, std::string path )
         : loop_( loop )
-        , path_{ path } {};
+        , path_{ std::move( path ) } {};
 
     [[nodiscard]] auto await_ready() const noexcept -> bool { return false; }
 
-    void await_suspend( std::coroutine_handle<typename T::promise_type> handle ) noexcept {
+    auto await_suspend( std::coroutine_handle<typename T::promise_type> handle ) -> void {
         auto cb = []( uv_fs_event_t *watcher, const char *filename, int events, int status ) -> void {
             auto self = static_cast<FilesystemWatchAwaitable<T> *>( watcher->data );
             self->event_ = static_cast<uv_fs_event>( events );
