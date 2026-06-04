@@ -1,12 +1,12 @@
 
 #include <uv.h>
-#include <stdio.h>
-#include <stdlib.h>
+#include <cstdio>
+#include <cstdlib>
 #include <unistd.h>
-#include <string.h>
+#include <cstring>
 
-static uv_loop_t *loop;
-static uv_tcp_t server;
+static uv_loop_t *loop{};
+static uv_tcp_t server{};
 
 /*
  * Stores everything about a request
@@ -25,8 +25,8 @@ struct client_request_data {
 
 /* Allocate buffers as requested by UV */
 static void alloc_buffer( uv_handle_t *handle, size_t size, uv_buf_t *buf ) {
-    char *base;
-    base = (char *)calloc( 1, size );
+    char *base{};
+    base = static_cast<char *>( calloc( 1, size ) );
     if ( !base )
         *buf = uv_buf_init( nullptr, 0 );
     else
@@ -72,7 +72,9 @@ static void after_process_command( uv_work_t *req, int status ) {
     data->write_req = static_cast<uv_write_t *>( malloc( sizeof( *data->write_req ) ) );
     data->write_req->data = data;
     uv_timer_stop( data->timer );
-    uv_write( data->write_req, (uv_stream_t *)data->client, &buf, 1, on_write_end );
+
+    // NOTE: plain c-style cast in previous.
+    uv_write( data->write_req, reinterpret_cast<uv_stream_t *>( data->client ), &buf, 1, on_write_end );
 }
 
 /*
@@ -129,7 +131,7 @@ static void read_cb( uv_stream_t *stream, ssize_t nread, const uv_buf_t *buf ) {
 /* Callback for the timer which signifies a timeout */
 static void client_timeout_cb( uv_timer_t *handle ) {
     struct client_request_data *data{};
-    data = (struct client_request_data *)handle->data;
+    data = static_cast<struct client_request_data *>( handle->data );
     uv_timer_stop( handle );
     if ( data->work_started ) return;
     close_data( data );
@@ -137,7 +139,7 @@ static void client_timeout_cb( uv_timer_t *handle ) {
 
 /* Callback for handling the new connection */
 static void connection_cb( uv_stream_t *server, int status ) {
-    struct client_request_data *data; /* if status not zero there was an error */
+    struct client_request_data *data{}; /* if status not zero there was an error */
     if ( status == -1 ) {
         return;
     }
@@ -149,14 +151,17 @@ static void connection_cb( uv_stream_t *server, int status ) {
     /* initialize the new client */
     uv_tcp_init( loop, client );
     if ( uv_accept( server, (uv_stream_t *)client ) == 0 ) {
-        /* start reading from stream */ uv_timer_t *timer;
+        /* start reading from stream */ uv_timer_t *timer{};
         timer = static_cast<uv_timer_t *>( malloc( sizeof( *timer ) ) );
         timer->data = data;
         data->timer = timer;
         uv_timer_init( loop, timer );
         uv_timer_set_repeat( timer, 1 );
         uv_timer_start( timer, client_timeout_cb, 10000, 20000 );
-        uv_read_start( (uv_stream_t *)client, alloc_buffer, read_cb );
+
+        // NOTE: plain c-style cast in previous.
+        uv_read_start( reinterpret_cast<uv_stream_t *>( client ), alloc_buffer, read_cb );
+
     } else {
         /* close client stream on error */
         close_data( data );
