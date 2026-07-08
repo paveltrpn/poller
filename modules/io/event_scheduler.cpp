@@ -3,8 +3,11 @@ module;
 
 #include <thread>
 #include <mutex>
-#include "uv.h"
 #include <condition_variable>
+#include <queue>
+#include <functional>
+
+#include "uv.h"
 
 export module io:event_scheduler;
 
@@ -22,6 +25,9 @@ struct EventScheduler {
         // Start worker thread.
         thread_ = std::make_unique<std::thread>( [this]() -> void {
             const auto ret = uv_loop_init( loop_ );
+
+            uv_async_init( loop_, &asyncWakeup_, asyncCallback );
+            asyncWakeup_.data = this;
 
             // Start event loop.
             while ( run_ ) {
@@ -41,7 +47,7 @@ struct EventScheduler {
             }
 
             // Gracefull shutdown.
-            // uv_close( reinterpret_cast<uv_handle_t *>( &ctx->async_wakeup ), nullptr );
+            uv_close( reinterpret_cast<uv_handle_t *>( &asyncWakeup_ ), nullptr );
             // Finish still running close callbacks
             uv_run( loop_, UV_RUN_DEFAULT );
             uv_loop_close( loop_ );
@@ -83,7 +89,35 @@ protected:
         cv_.notify_one();
     }
 
+    void postTask( std::function<void( uv_loop_t * )> task ) {
+        {
+            std::lock_guard<std::mutex> lock( queueMutex_ );
+            queue_.push( std::move( task ) );
+        }
+        // Будим event loop, если он сейчас внутри uv_run
+        uv_async_send( &asyncWakeup_ );
+        // Будим поток, если он сейчас спит на condition_variable (после завершения uv_run)
+        cv_.notify_one();
+    }
+
 private:
+    static auto asyncCallback( uv_async_t *handle ) -> void {
+        auto *ctx = static_cast<EventScheduler *>( handle->data );
+        std::queue<std::function<void( uv_loop_t * )>> local_queue;
+
+        // Быстро забираем все задачи из общей очереди в локальную
+        {
+            std::lock_guard<std::mutex> lock( ctx->queueMutex_ );
+            std::swap( local_queue, ctx->queue_ );
+        }
+
+        // Выполняем задачи (создаем handles, запускаем I/O)
+        while ( !local_queue.empty() ) {
+            auto task = std::move( local_queue.front() );
+            local_queue.pop();
+            task( ctx->loop_ );
+        }
+    }
     auto stop() -> void {
         {
             // std::lock_guard<std::mutex> _{ some_mutex };
@@ -98,12 +132,19 @@ private:
     // Main and only uv loop handle.
     uv_loop_t *loop_{};
 
+    //
+    uv_async_t asyncWakeup_{};
+
     // Loop thread.
     std::unique_ptr<std::thread> thread_;
 
     //
     std::condition_variable cv_;
     std::mutex m_;
+
+    //
+    std::queue<std::function<void( uv_loop_t * )>> queue_;
+    std::mutex queueMutex_;
 
     //
     bool run_{ true };
