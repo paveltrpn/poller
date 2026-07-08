@@ -54,7 +54,6 @@ struct TimeoutAwaitable final {
     auto await_suspend( std::coroutine_handle<typename T::promise_type> coroHandle ) noexcept -> void {
         // Execute on event loop.
         auto newTimerTask = []( uv_loop_t *loop, void *coro ) -> void {
-            // TODO: delete this somehow!
             auto timer = static_cast<uv_timer_t *>( std::malloc( sizeof( uv_timer_t ) ) );
             auto timeout{ 1000 };
             auto repeat{ 0 };
