@@ -1,10 +1,10 @@
 # Poller
 
-A C++20 HTTP client library built with coroutines, featuring async/await support and event-driven architecture.
+This is a library that wraps a CURL and libuv with support of C++20 coroutines.  
 
 ## About
 
-Poller is a simple HTTP client library leveraging C++20 coroutines and the libuv event loop for efficient asynchronous I/O operations. The library provides a clean, modern interface for making HTTP requests with support for both non-blocking and blocking awaitable patterns.
+CURL part of this project is a simple HTTP client library leveraging C++20 coroutines and the libuv part is provides a asychronous timer, disk and network operations (by now is only timer:).  
 
 ### Building Dependencies
 
