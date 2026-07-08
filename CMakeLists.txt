@@ -69,16 +69,6 @@ target_sources(poller_std
     ${MOD_STD_SRC}
 )
 
-# Module raw
-# ================================
-file(GLOB MOD_RAW_SRC modules/raw/*.cpp)
-add_library(raw)
-target_sources(raw
-  PUBLIC
-    FILE_SET CXX_MODULES FILES
-    ${MOD_RAW_SRC}
-)
-
 # ================================
 # Module io
 # ================================
