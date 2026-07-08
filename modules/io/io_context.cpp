@@ -30,7 +30,7 @@ struct WriteHandle {
 export template <typename T>
 struct TimeoutAwaitable;
 
-export struct IoContext final : EventScheduler {
+export struct TimerSheduler final : EventScheduler {
     template <typename T>
     friend struct TimeoutAwaitable;
 
@@ -41,7 +41,7 @@ public:
 
 template <typename T>
 struct TimeoutAwaitable final {
-    TimeoutAwaitable( IoContext &context, uint64_t timeout )
+    TimeoutAwaitable( TimerSheduler &context, uint64_t timeout )
         : context_( context )
         , timeout_{ timeout } {};
 
@@ -88,11 +88,11 @@ struct TimeoutAwaitable final {
         //
     }
 
-    IoContext &context_;
+    TimerSheduler &context_;
     uint64_t timeout_;
 };
 
-auto IoContext::timeout( uint64_t timeout ) -> TimeoutAwaitable<Task<void>> {
+auto TimerSheduler::timeout( uint64_t timeout ) -> TimeoutAwaitable<Task<void>> {
     //
     return TimeoutAwaitable<Task<void>>{ /* Context */ *this, timeout };
 };
