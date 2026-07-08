@@ -1,6 +1,7 @@
 
 module;
 
+#include <print>
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -31,9 +32,11 @@ struct EventScheduler {
 
             // Start event loop.
             while ( run_ ) {
+                std::println( "start loop thread" );
+
                 auto more = uv_run( loop_, UV_RUN_DEFAULT );
 
-                log::info()( "wait for jobs..." );
+                log::info()( "wait for jobs... {}", more );
 
                 // Main thread must explicitly notify this
                 // thread to start event loop.
