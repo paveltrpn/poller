@@ -6,7 +6,7 @@ module;
 
 #include <uv.h>
 
-export module io:context;
+export module io:timer_scheduler;
 
 import :event_scheduler;
 import :async;
