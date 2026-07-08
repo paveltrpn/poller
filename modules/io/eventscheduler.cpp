@@ -41,7 +41,7 @@ struct EventScheduler {
             uv_run( loop_, UV_RUN_DEFAULT );
             uv_loop_close( loop_ );
 
-            log::info()( "loop finished..." );
+            log::info()( "loop thread finished..." );
         } );
     }
 
@@ -55,6 +55,8 @@ struct EventScheduler {
 
         // Release loop pointer.
         std::free( loop_ );
+
+        log::info()( "closing app..." );
     }
 
 protected:
@@ -109,11 +111,11 @@ private:
     uv_async_t asyncWakeup_{};
 
     // Loop thread.
-    std::unique_ptr<std::thread> thread_;
+    std::unique_ptr<std::thread> thread_{};
 
     //
-    std::queue<std::pair<std::function<void( uv_loop_t *, void * )>, void *>> queue_;
-    std::mutex queueMutex_;
+    std::queue<std::pair<std::function<void( uv_loop_t *, void * )>, void *>> queue_{};
+    std::mutex queueMutex_{};
 };
 
 }  // namespace poller::io

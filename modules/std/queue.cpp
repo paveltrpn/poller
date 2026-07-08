@@ -123,6 +123,7 @@ private:
     std::vector<T> buffer_;
 };
 
+// Semaphore based queue.
 template <typename T>
 class semaphore_queue {
 public:
