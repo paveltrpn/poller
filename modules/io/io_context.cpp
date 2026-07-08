@@ -46,35 +46,6 @@ public:
     auto timeout( uint64_t timeout ) -> TimeoutAwaitable<Task<void>>;
 
 private:
-    // Start timer repeating with interval.
-    auto repeat( uint64_t repeat, void ( *cb )( uv_timer_t * ), void *payload ) -> void {
-        //
-        auto t = new TimerHandle{};
-
-        //
-        t->timeout_ = 0;
-        t->repeat_ = repeat;
-        t->cb_ = cb;
-
-        uv_handle_set_data( reinterpret_cast<uv_handle_t *>( &t->handle_ ), payload );
-
-        auto timerCb = []( uv_async_t *asyncHandle ) -> void {
-            auto timer = static_cast<TimerHandle *>( asyncHandle->data );
-
-            uv_timer_init( asyncHandle->loop, &timer->handle_ );
-            uv_timer_start( &timer->handle_, timer->cb_, timer->timeout_, timer->repeat_ );
-
-            // Manually close active uv_async_t handle.
-            // It exclude this handle from event loop queue.
-            uv_close( reinterpret_cast<uv_handle_t *>( asyncHandle ), []( uv_handle_t *asyncHandle ) -> void {
-                //
-                std::free( asyncHandle );
-            } );
-        };
-
-        schedule( t, timerCb );
-    };
-
     // Fire once by timeout.
     auto timeout( uint64_t timeout, void ( *cb )( uv_timer_t * ), void *payload ) -> void {
         //
