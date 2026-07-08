@@ -10,7 +10,6 @@ export module io:context;
 
 import :event_scheduler;
 import :async;
-import :list;
 
 namespace poller::io {
 

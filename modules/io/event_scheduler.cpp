@@ -10,8 +10,6 @@ export module io:event_scheduler;
 
 import log;
 
-import :list;
-
 namespace poller::io {
 
 struct EventScheduler {
