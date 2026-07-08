@@ -27,27 +27,13 @@ struct EventScheduler {
         thread_ = std::make_unique<std::thread>( [this]() -> void {
             const auto ret = uv_loop_init( loop_ );
 
+            // Initialized uv_async_t keep loop in polling phase (loop
+            // is "sleep").
             uv_async_init( loop_, &asyncWakeup_, asyncCallback );
             asyncWakeup_.data = this;
 
             // Start event loop.
-            while ( run_ ) {
-                std::println( "start loop thread" );
-
-                auto more = uv_run( loop_, UV_RUN_DEFAULT );
-
-                log::info()( "wait for jobs... {}", more );
-
-                // Main thread must explicitly notify this
-                // thread to start event loop.
-                if ( more == 0 ) {
-                    std::unique_lock<std::mutex> lk{ m_ };
-                    cv_.wait( lk, [this]() -> bool {
-                        //
-                        return !queue_.empty() || !run_;
-                    } );
-                }
-            }
+            auto more = uv_run( loop_, UV_RUN_DEFAULT );
 
             // Gracefull shutdown.
             uv_close( reinterpret_cast<uv_handle_t *>( &asyncWakeup_ ), nullptr );
@@ -65,6 +51,8 @@ struct EventScheduler {
     virtual ~EventScheduler() {
         stop();
 
+        thread_->join();
+
         // Release loop pointer.
         std::free( loop_ );
     }
@@ -78,10 +66,9 @@ protected:
             std::lock_guard<std::mutex> lock( queueMutex_ );
             queue_.emplace( std::move( task ), coro );
         }
-        // Будим event loop, если он сейчас внутри uv_run
+
+        // Wakeup event loop and process task queue.
         uv_async_send( &asyncWakeup_ );
-        // Будим поток, если он сейчас спит на condition_variable (после завершения uv_run)
-        cv_.notify_one();
     }
 
 private:
@@ -108,13 +95,10 @@ private:
     }
 
     auto stop() -> void {
-        {
-            std::lock_guard<std::mutex> _( queueMutex_ );
-            run_ = false;
-        }
-
-        cv_.notify_one();
-        thread_->join();
+        // Unref uv_async_t to release event loop.
+        uv_unref( reinterpret_cast<uv_handle_t *>( &asyncWakeup_ ) );
+        // Work out unfinished jobs.
+        uv_async_send( &asyncWakeup_ );
     }
 
 private:
@@ -128,15 +112,8 @@ private:
     std::unique_ptr<std::thread> thread_;
 
     //
-    std::condition_variable cv_;
-    std::mutex m_;
-
-    //
     std::queue<std::pair<std::function<void( uv_loop_t *, void * )>, void *>> queue_;
     std::mutex queueMutex_;
-
-    //
-    bool run_{ true };
 };
 
 }  // namespace poller::io

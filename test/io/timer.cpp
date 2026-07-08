@@ -17,8 +17,7 @@ auto delay() -> poller::io::Task<void> {
 }
 
 auto main( int argc, char **argv ) -> int {
-    std::println( "sleep for zero time" );
-    std::this_thread::sleep_for( 2000ms );
+    std::this_thread::sleep_for( 1000ms );
 
     delay();
     delay();
