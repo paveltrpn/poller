@@ -17,14 +17,12 @@ struct EventScheduler {
     EventScheduler( EventScheduler &&other ) = delete;
 
     EventScheduler()
-        : loop_{ //
-                 // Try to allocate main loop handle.
+        : loop_{ // Allocate main loop handle.
                  static_cast<uv_loop_t *>( std::malloc( sizeof( uv_loop_t ) ) ) } {
-        // We not yet in loop thread. Calling this is safe.
-        const auto ret = uv_loop_init( loop_ );
-
-        // Loop thread initialization.
+        // Start worker thread.
         thread_ = std::make_unique<std::thread>( [this]() -> void {
+            const auto ret = uv_loop_init( loop_ );
+
             // Start event loop.
             while ( run_ ) {
                 auto more = uv_run( loop_, UV_RUN_DEFAULT );
@@ -42,9 +40,9 @@ struct EventScheduler {
                 }
             }
 
-            // Корректное завершение
+            // Gracefull shutdown.
             // uv_close( reinterpret_cast<uv_handle_t *>( &ctx->async_wakeup ), nullptr );
-            // Доработать оставшиеся close callbacks
+            // Finish still running close callbacks
             uv_run( loop_, UV_RUN_DEFAULT );
             uv_loop_close( loop_ );
 
