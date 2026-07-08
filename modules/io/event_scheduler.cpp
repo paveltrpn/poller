@@ -41,14 +41,14 @@ struct EventScheduler {
                     std::unique_lock<std::mutex> lk{ m_ };
                     cv_.wait( lk, [this]() -> bool {
                         //
-                        return !run_;
+                        return !queue_.empty() || !run_;
                     } );
                 }
             }
 
             // Gracefull shutdown.
             uv_close( reinterpret_cast<uv_handle_t *>( &asyncWakeup_ ), nullptr );
-            // Finish still running close callbacks
+            // Finish still running close callbacks.
             uv_run( loop_, UV_RUN_DEFAULT );
             uv_loop_close( loop_ );
 
@@ -70,29 +70,10 @@ protected:
     // Submit callback to event loop.
     // That async handle contain a pointer to specific data, that will be
     // used in callback and callback to perform action on event loop thread itself.
-    auto schedule( void *payload, std::invocable<uv_async_t *> auto cb ) -> void {
-        // Allocate uv_async_t handle. Will be deleted in close callback.
-        const auto j = static_cast<uv_async_t *>( std::malloc( sizeof( uv_async_t ) ) );
-
-        // Store payload pointer in async handle
-        j->data = payload;
-
-        // Initilaize async handle with specific payload and callback.
-        // NOTE: this is (probably) not thread safe!
-        uv_async_init( loop_, j, cb );
-
-        // Submit job to event loop.
-        // This thread safe (one and only thread safe call across
-        // all lobuv API)
-        uv_async_send( j );
-
-        cv_.notify_one();
-    }
-
-    void postTask( std::function<void( uv_loop_t * )> task ) {
+    void schedule( std::function<void( uv_loop_t *, void * )> task, void *coro ) {
         {
             std::lock_guard<std::mutex> lock( queueMutex_ );
-            queue_.push( std::move( task ) );
+            queue_.emplace( std::move( task ), coro );
         }
         // Будим event loop, если он сейчас внутри uv_run
         uv_async_send( &asyncWakeup_ );
@@ -101,26 +82,31 @@ protected:
     }
 
 private:
+    // This static method executes inside event loop when uv_async_send()
+    // is called.
     static auto asyncCallback( uv_async_t *handle ) -> void {
         auto *ctx = static_cast<EventScheduler *>( handle->data );
-        std::queue<std::function<void( uv_loop_t * )>> local_queue;
+        std::queue<std::pair<std::function<void( uv_loop_t *, void * )>, void *>> local_queue;
 
-        // Быстро забираем все задачи из общей очереди в локальную
+        // Move tasks from shared queue into local queue to
+        // release the mutex as fast as we can.
         {
             std::lock_guard<std::mutex> lock( ctx->queueMutex_ );
             std::swap( local_queue, ctx->queue_ );
         }
 
-        // Выполняем задачи (создаем handles, запускаем I/O)
+        // Execute tasks. Every task create libuv asunchronius
+        // job throgh handles.
         while ( !local_queue.empty() ) {
-            auto task = std::move( local_queue.front() );
+            auto [task, coro] = std::move( local_queue.front() );
             local_queue.pop();
-            task( ctx->loop_ );
+            task( ctx->loop_, coro );
         }
     }
+
     auto stop() -> void {
         {
-            // std::lock_guard<std::mutex> _{ some_mutex };
+            std::lock_guard<std::mutex> _( queueMutex_ );
             run_ = false;
         }
 
@@ -143,7 +129,7 @@ private:
     std::mutex m_;
 
     //
-    std::queue<std::function<void( uv_loop_t * )>> queue_;
+    std::queue<std::pair<std::function<void( uv_loop_t *, void * )>, void *>> queue_;
     std::mutex queueMutex_;
 
     //

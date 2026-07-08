@@ -13,14 +13,6 @@ import :async;
 
 namespace poller::io {
 
-struct TimerHandle final {
-    uv_timer_t handle_{};
-    uint64_t timeout_{};
-    uint64_t repeat_{};
-    // uv_timer_cb type
-    void ( *cb_ )( uv_timer_t *handle ){};
-};
-
 struct ReadHandle {
     uv_fs_t open_;
     uv_fs_t read_;
@@ -43,35 +35,8 @@ export struct IoContext final : EventScheduler {
     friend struct TimeoutAwaitable;
 
 public:
-    auto timeout( uint64_t timeout ) -> TimeoutAwaitable<Task<void>>;
-
-private:
     // Fire once by timeout.
-    auto timeout( uint64_t timeout, void ( *cb )( uv_timer_t * ), void *payload ) -> void {
-        //
-        auto t = new TimerHandle{};
-
-        //
-        t->timeout_ = timeout;
-        t->repeat_ = 0;
-        t->cb_ = cb;
-
-        uv_handle_set_data( reinterpret_cast<uv_handle_t *>( &t->handle_ ), payload );
-
-        auto timerCb = []( uv_async_t *asyncHandle ) -> void {
-            auto timer = static_cast<TimerHandle *>( asyncHandle->data );
-
-            uv_timer_init( asyncHandle->loop, &timer->handle_ );
-            uv_timer_start( &timer->handle_, timer->cb_, timer->timeout_, timer->repeat_ );
-
-            uv_close( reinterpret_cast<uv_handle_t *>( asyncHandle ), []( uv_handle_t *asyncHandle ) -> void {
-                //
-                std::free( asyncHandle );
-            } );
-        };
-
-        schedule( t, timerCb );
-    };
+    auto timeout( uint64_t timeout ) -> TimeoutAwaitable<Task<void>>;
 };
 
 template <typename T>
@@ -86,35 +51,50 @@ struct TimeoutAwaitable final {
         return false;
     }
 
-    auto await_suspend( std::coroutine_handle<typename T::promise_type> handle ) noexcept {
-        // Coroutine resume callback.
-        auto cb = []( uv_timer_t *timer ) -> void {
-            auto coroHandle = static_cast<std::coroutine_handle<typename T::promise_type> *>( timer->data );
-            coroHandle->resume();
+    auto await_suspend( std::coroutine_handle<typename T::promise_type> coroHandle ) noexcept -> void {
+        // Execute on event loop.
+        auto newTimerTask = []( uv_loop_t *loop, void *coro ) -> void {
+            // TODO: delete this somehow!
+            auto timer = static_cast<uv_timer_t *>( std::malloc( sizeof( uv_timer_t ) ) );
+            auto timeout{ 1000 };
+            auto repeat{ 0 };
 
-            uv_close( reinterpret_cast<uv_handle_t *>( timer ), []( uv_handle_t *handle ) -> void {
-                //
-                delete handle;
-            } );
+            uv_handle_set_data( reinterpret_cast<uv_handle_t *>( timer ), coro );
+
+            // Coroutine resume callback.
+            auto onFiresCb = []( uv_timer_t *timer ) -> void {
+                auto coroHandle = std::coroutine_handle<typename T::promise_type>::from_address( timer->data );
+
+                if ( !coroHandle ) {
+                    log::error()( "bad coro handle!" );
+                } else {
+                    coroHandle.resume();
+                }
+
+                uv_close( reinterpret_cast<uv_handle_t *>( timer ), []( uv_handle_t *handle ) -> void {
+                    //
+                    std::free( handle );
+                } );
+            };
+
+            uv_timer_init( loop, timer );
+            uv_timer_start( timer, onFiresCb, timeout, repeat );
         };
 
-        coroHandle_ = handle;
-
-        context_.timeout( timeout_, cb, &coroHandle_ );
+        context_.schedule( newTimerTask, coroHandle.address() );
     }
 
     auto await_resume() const noexcept -> void {
         //
     }
 
-    std::coroutine_handle<typename T::promise_type> coroHandle_;
     IoContext &context_;
     uint64_t timeout_;
 };
 
 auto IoContext::timeout( uint64_t timeout ) -> TimeoutAwaitable<Task<void>> {
     //
-    return { *this, timeout };
+    return TimeoutAwaitable<Task<void>>{ /* Context */ *this, timeout };
 };
 
 }  // namespace poller::io
