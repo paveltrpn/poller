@@ -13,75 +13,53 @@ import log;
 namespace poller::io {
 
 struct EventScheduler {
-    EventScheduler()
-        : loop_{ static_cast<uv_loop_t *>( std::malloc( sizeof( uv_loop_t ) ) ) } {
-        // Try to allocate main loop handle.
+    EventScheduler( const EventScheduler &other ) = delete;
+    EventScheduler( EventScheduler &&other ) = delete;
 
+    EventScheduler()
+        : loop_{ //
+                 // Try to allocate main loop handle.
+                 static_cast<uv_loop_t *>( std::malloc( sizeof( uv_loop_t ) ) ) } {
         // We not yet in loop thread. Calling this is safe.
         const auto ret = uv_loop_init( loop_ );
 
         // Loop thread initialization.
         thread_ = std::make_unique<std::thread>( [this]() -> void {
-            // Main thread must explicitly notify this
-            // thread to start event loop.
-            std::unique_lock<std::mutex> lk{ m_ };
-            cv_.wait( lk, [this]() -> bool {
-                //
-                return run_;
-            } );
-
             // Start event loop.
-            uv_run( loop_, UV_RUN_DEFAULT );
+            while ( run_ ) {
+                auto more = uv_run( loop_, UV_RUN_DEFAULT );
 
-            log::info()( "uv loop closed!" );
+                log::info()( "wait for jobs..." );
+
+                // Main thread must explicitly notify this
+                // thread to start event loop.
+                if ( more == 0 ) {
+                    std::unique_lock<std::mutex> lk{ m_ };
+                    cv_.wait( lk, [this]() -> bool {
+                        //
+                        return !run_;
+                    } );
+                }
+            }
+
+            // Корректное завершение
+            // uv_close( reinterpret_cast<uv_handle_t *>( &ctx->async_wakeup ), nullptr );
+            // Доработать оставшиеся close callbacks
+            uv_run( loop_, UV_RUN_DEFAULT );
+            uv_loop_close( loop_ );
+
+            log::info()( "loop finished..." );
         } );
     }
 
-    // Not copyable not moveable "service-like" object.
-    EventScheduler( const EventScheduler &other ) = delete;
-    EventScheduler( EventScheduler &&other ) = delete;
     auto operator=( const EventScheduler &other ) -> EventScheduler & = delete;
     auto operator=( EventScheduler &&other ) -> EventScheduler & = delete;
 
     virtual ~EventScheduler() {
-        // We already left loop thread.
-        // De-initialize and free the resources associated with an event loop.
-        uv_loop_close( loop_ );
+        stop();
 
         // Release loop pointer.
         std::free( loop_ );
-    }
-
-    auto run() -> void {
-        if ( run_ ) {
-            log::warning()( "can't do run(), context already active!" );
-            return;
-        }
-
-        {
-            std::lock_guard<std::mutex> _{ m_ };
-            run_ = true;
-        }
-        cv_.notify_one();
-
-        thread_->detach();
-    }
-
-    auto syncWait() -> void {
-        if ( run_ ) {
-            log::warning()( "can't do syncWait(), context already "
-                            "active!" );
-            return;
-        }
-
-        {
-            std::lock_guard<std::mutex> _{ m_ };
-            run_ = true;
-        }
-        cv_.notify_one();
-
-        //
-        thread_->join();
     }
 
 protected:
@@ -103,6 +81,19 @@ protected:
         // This thread safe (one and only thread safe call across
         // all lobuv API)
         uv_async_send( j );
+
+        cv_.notify_one();
+    }
+
+private:
+    auto stop() -> void {
+        {
+            // std::lock_guard<std::mutex> _{ some_mutex };
+            run_ = false;
+        }
+
+        cv_.notify_one();
+        thread_->join();
     }
 
 private:
@@ -115,7 +106,9 @@ private:
     //
     std::condition_variable cv_;
     std::mutex m_;
-    bool run_{ false };
+
+    //
+    bool run_{ true };
 };
 
 }  // namespace poller::io
