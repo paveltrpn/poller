@@ -2,7 +2,8 @@
 module;
 
 export module io;
-export import :event_scheduler;
-export import :timer_scheduler;
-export import :fileio_scheduler;
+export import :schedulerbase;
+export import :scheduler;
+export import :fileio;
+export import :timer;
 export import :async;

@@ -8,7 +8,7 @@ import io;
 
 using namespace std::chrono_literals;
 
-poller::io::TimerSheduler shed{};
+poller::io::Scheduler shed{};
 
 auto delay() -> poller::io::Task<void> {
     std::println( "shchedule timeout" );

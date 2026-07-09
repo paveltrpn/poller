@@ -6,9 +6,9 @@ module;
 
 #include <uv.h>
 
-export module io:timer_scheduler;
+export module io:scheduler;
 
-import :event_scheduler;
+import :schedulerbase;
 import :async;
 
 namespace poller::io {
@@ -16,7 +16,7 @@ namespace poller::io {
 export template <typename T>
 struct TimeoutAwaitable;
 
-export struct TimerSheduler final : EventScheduler {
+export struct Scheduler final : SchedulerBase {
     template <typename T>
     friend struct TimeoutAwaitable;
 
@@ -27,7 +27,7 @@ public:
 
 template <typename T>
 struct TimeoutAwaitable final {
-    TimeoutAwaitable( TimerSheduler &context, uint64_t timeout )
+    TimeoutAwaitable( Scheduler &context, uint64_t timeout )
         : context_( context )
         , timeout_{ timeout } {};
 
@@ -73,11 +73,11 @@ struct TimeoutAwaitable final {
         //
     }
 
-    TimerSheduler &context_;
+    Scheduler &context_;
     uint64_t timeout_;
 };
 
-auto TimerSheduler::timeout( uint64_t timeout ) -> TimeoutAwaitable<Task<void>> {
+auto Scheduler::timeout( uint64_t timeout ) -> TimeoutAwaitable<Task<void>> {
     //
     return TimeoutAwaitable<Task<void>>{ /* Context */ *this, timeout };
 };

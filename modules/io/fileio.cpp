@@ -6,9 +6,9 @@ module;
 
 #include <uv.h>
 
-export module io:fileio_scheduler;
+export module io:fileio;
 
-import :event_scheduler;
+import :schedulerbase;
 import :async;
 
 namespace poller::io {
@@ -25,10 +25,6 @@ struct WriteHandle {
     uv_fs_t write_;
     uv_fs_t close_;
     uv_buf_t buf_;
-};
-
-export struct FileIOSheduler final : EventScheduler {
-public:
 };
 
 }  // namespace poller::io

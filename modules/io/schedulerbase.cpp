@@ -10,17 +10,17 @@ module;
 
 #include "uv.h"
 
-export module io:event_scheduler;
+export module io:schedulerbase;
 
 import log;
 
 namespace poller::io {
 
-struct EventScheduler {
-    EventScheduler( const EventScheduler &other ) = delete;
-    EventScheduler( EventScheduler &&other ) = delete;
+struct SchedulerBase {
+    SchedulerBase( const SchedulerBase &other ) = delete;
+    SchedulerBase( SchedulerBase &&other ) = delete;
 
-    EventScheduler()
+    SchedulerBase()
         : loop_{ // Allocate main loop handle.
                  static_cast<uv_loop_t *>( std::malloc( sizeof( uv_loop_t ) ) ) } {
         // Start worker thread.
@@ -45,10 +45,10 @@ struct EventScheduler {
         } );
     }
 
-    auto operator=( const EventScheduler &other ) -> EventScheduler & = delete;
-    auto operator=( EventScheduler &&other ) -> EventScheduler & = delete;
+    auto operator=( const SchedulerBase &other ) -> SchedulerBase & = delete;
+    auto operator=( SchedulerBase &&other ) -> SchedulerBase & = delete;
 
-    virtual ~EventScheduler() {
+    virtual ~SchedulerBase() {
         stop();
 
         thread_->join();
@@ -77,7 +77,7 @@ private:
     // This static method executes inside event loop when uv_async_send()
     // is called.
     static auto asyncCallback( uv_async_t *handle ) -> void {
-        auto *ctx = static_cast<EventScheduler *>( handle->data );
+        auto *ctx = static_cast<SchedulerBase *>( handle->data );
         std::queue<std::pair<std::function<void( uv_loop_t *, void * )>, void *>> local_queue;
 
         // Move tasks from shared queue into local queue to
