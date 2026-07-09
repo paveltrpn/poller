@@ -11,14 +11,10 @@ module;
 export module io:fileio;
 
 import :scheduler;
+import :payload;
 import :async;
 
 namespace poller::io {
-
-struct FileIOCbPayload {
-    void *coro;
-    size_t opentResult;
-};
 
 export template <typename T>
 struct FileIOAwaitable final {
@@ -70,7 +66,7 @@ struct FileIOAwaitable final {
             }
         };
 
-        context_.schedule( newFileIOTask, coroHandle.address() );
+        //context_.scheduleFileIO( newFileIOTask, coroHandle.address() );
     }
 
     // [[nodiscard]]

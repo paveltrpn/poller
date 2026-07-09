@@ -13,6 +13,7 @@ module;
 export module io:schedulerbase;
 
 import log;
+import :payload;
 
 namespace poller::io {
 
@@ -29,14 +30,14 @@ struct SchedulerBase {
 
             // Initialized uv_async_t keep loop in polling phase (loop
             // is "sleep").
-            uv_async_init( loop_, &asyncWakeup_, asyncCallback );
-            asyncWakeup_.data = this;
+            uv_async_init( loop_, &timeoutAsyncWakeup_, asyncCallback );
+            timeoutAsyncWakeup_.data = this;
 
             // Start event loop.
             auto more = uv_run( loop_, UV_RUN_DEFAULT );
 
             // Gracefull shutdown.
-            uv_close( reinterpret_cast<uv_handle_t *>( &asyncWakeup_ ), nullptr );
+            uv_close( reinterpret_cast<uv_handle_t *>( &timeoutAsyncWakeup_ ), nullptr );
             // Finish still running close callbacks.
             uv_run( loop_, UV_RUN_DEFAULT );
             uv_loop_close( loop_ );
@@ -61,14 +62,24 @@ struct SchedulerBase {
 
 protected:
     // Submit callback to event loop.
-    void schedule( std::function<void( uv_loop_t *, void * )> task, void *coro ) {
+    void scheduleTimeout( std::function<void( uv_loop_t *, TimeoutCbPayload * )> task, TimeoutCbPayload *p ) {
         {
-            std::lock_guard<std::mutex> lock( queueMutex_ );
-            queue_.emplace( std::move( task ), coro );
+            std::lock_guard<std::mutex> lock( timeoutQueueMutex_ );
+            timeoutQueue_.emplace( std::move( task ), p );
         }
 
         // Wakeup event loop and process task queue.
-        uv_async_send( &asyncWakeup_ );
+        uv_async_send( &timeoutAsyncWakeup_ );
+    }
+
+    void scheduleFileIO( std::function<void( uv_loop_t *, FileIOCbPayload * )> task, FileIOCbPayload *p ) {
+        {
+            std::lock_guard<std::mutex> lock( fileIOQueueMutex_ );
+            fileIOQueue_.emplace( std::move( task ), p );
+        }
+
+        // Wakeup event loop and process task queue.
+        uv_async_send( &timeoutAsyncWakeup_ );
     }
 
 private:
@@ -76,44 +87,47 @@ private:
     // is called.
     static auto asyncCallback( uv_async_t *handle ) -> void {
         auto *ctx = static_cast<SchedulerBase *>( handle->data );
-        std::queue<std::pair<std::function<void( uv_loop_t *, void * )>, void *>> local_queue;
+        std::queue<std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>> local_queue;
 
         // Move tasks from shared queue into local queue to
         // release the mutex as fast as we can.
         {
-            std::lock_guard<std::mutex> lock( ctx->queueMutex_ );
-            std::swap( local_queue, ctx->queue_ );
+            std::lock_guard<std::mutex> lock( ctx->timeoutQueueMutex_ );
+            std::swap( local_queue, ctx->timeoutQueue_ );
         }
 
         // Execute tasks. Every task create libuv asunchronius
         // job throgh handles.
         while ( !local_queue.empty() ) {
-            auto [task, coro] = std::move( local_queue.front() );
+            auto [task, payload] = std::move( local_queue.front() );
             local_queue.pop();
-            task( ctx->loop_, coro );
+            task( ctx->loop_, payload );
         }
     }
 
     auto stop() -> void {
         // Unref uv_async_t to release event loop.
-        uv_unref( reinterpret_cast<uv_handle_t *>( &asyncWakeup_ ) );
+        uv_unref( reinterpret_cast<uv_handle_t *>( &timeoutAsyncWakeup_ ) );
         // Work out unfinished jobs.
-        uv_async_send( &asyncWakeup_ );
+        uv_async_send( &timeoutAsyncWakeup_ );
     }
 
 private:
     // Main and only uv loop handle.
     uv_loop_t *loop_{};
 
-    //
-    uv_async_t asyncWakeup_{};
-
     // Loop thread.
     std::unique_ptr<std::thread> thread_{};
 
     //
-    std::queue<std::pair<std::function<void( uv_loop_t *, void * )>, void *>> queue_{};
-    std::mutex queueMutex_{};
+    uv_async_t timeoutAsyncWakeup_{};
+    std::queue<std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>> timeoutQueue_{};
+    std::mutex timeoutQueueMutex_{};
+
+    //
+    uv_async_t fileIOAsyncWakeup_{};
+    std::queue<std::pair<std::function<void( uv_loop_t *, FileIOCbPayload * )>, FileIOCbPayload *>> fileIOQueue_{};
+    std::mutex fileIOQueueMutex_{};
 };
 
 }  // namespace poller::io

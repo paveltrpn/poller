@@ -12,7 +12,7 @@ poller::io::Scheduler shed{};
 
 auto delay() -> poller::io::Task<void> {
     std::println( "shchedule timeout" );
-    co_await shed.timeout( 500 );
+    co_await shed.timeout( 666 );
     std::println( "timeout expired!" );
 }
 
