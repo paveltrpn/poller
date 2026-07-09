@@ -4,7 +4,7 @@ This is a library that wraps a CURL and libuv with support of C++20 coroutines.
 
 ## About
 
-CURL part of this project is a simple HTTP client library leveraging C++20 coroutines and the libuv part is provides a asychronous timer, disk and network operations (by now is only timer:).  
+CURL part of this project is a simple HTTP client library leveraging C++20 coroutines and the libuv part provides a asychronous timer, disk and network operations (by now is only timer and very simple file open operation:).  
 
 ### Building Dependencies
 
@@ -41,7 +41,7 @@ $ git clone https://github.com/nlohmann/json
 ### Requirements
 
 - Compiler with C++26 support (clang++ recommended)
-- CMake 4.2 or higher
+- Fresh CMake with support of C++20 modules
 
 ### Configuration
 
@@ -53,7 +53,8 @@ export LIBUV_DIR={some}/{path}/libuv
 export NLOHMANN_JSON_DIR={some}/{path}/json
 ```
 
-### Compilation
+### Compilation  
+As usual with CMake based projects  
 
 ```bash
 $ mkdir build
@@ -64,15 +65,4 @@ $ cmake --build .
 
 ### Compiler Configuration
 
-By default, the project uses `clang++` with `libc++` for better C++26 support. You can override:
-
-```bash
-$ cmake .. -DCMAKE_CXX_FLAGS=-stdlib=libstdc++ -DCMAKE_CXX_COMPILER=$(which g++)
-$ cmake .. -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_CXX_COMPILER=$(which clang++)
-```
-
-Build type can be changed via `-DCMAKE_BUILD_TYPE`:
-
-```bash
-$ cmake .. -DCMAKE_BUILD_TYPE=Release
-```
+By default, the project uses `clang++` with `libc++` for better C++26 support.  
