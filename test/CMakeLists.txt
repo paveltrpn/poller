@@ -22,4 +22,10 @@ add_executable(timer
 )
 target_link_libraries(timer uv io)
 
+add_executable(fileio
+    io/fileio.cpp
+)
+target_link_libraries(fileio uv io)
+
+
 

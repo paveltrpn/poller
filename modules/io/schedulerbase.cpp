@@ -61,8 +61,6 @@ struct SchedulerBase {
 
 protected:
     // Submit callback to event loop.
-    // That async handle contain a pointer to specific data, that will be
-    // used in callback and callback to perform action on event loop thread itself.
     void schedule( std::function<void( uv_loop_t *, void * )> task, void *coro ) {
         {
             std::lock_guard<std::mutex> lock( queueMutex_ );
