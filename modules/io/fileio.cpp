@@ -1,6 +1,7 @@
 
 module;
 
+#include <string>
 #include <cstdlib>
 #include <coroutine>
 
@@ -8,23 +9,38 @@ module;
 
 export module io:fileio;
 
-import :schedulerbase;
+import :scheduler;
 import :async;
 
 namespace poller::io {
 
-struct ReadHandle {
-    uv_fs_t open_;
-    uv_fs_t read_;
-    uv_fs_t close_;
-    uv_buf_t buf_;
+export template <typename T>
+struct FileIOAwaitable final {
+    FileIOAwaitable( Scheduler &context, std::string path )
+        : context_( context )
+        , path_{ std::move( path ) } {};
+
+    [[nodiscard]]
+    auto await_ready() const noexcept -> bool {
+        //
+        return false;
+    }
+
+    auto await_suspend( std::coroutine_handle<typename T::promise_type> coroHandle ) noexcept -> void {
+        //
+    }
+
+    auto await_resume() const noexcept -> void {
+        //
+    }
+
+    Scheduler &context_;
+    std::string path_{};
 };
 
-struct WriteHandle {
-    uv_fs_t open_;
-    uv_fs_t write_;
-    uv_fs_t close_;
-    uv_buf_t buf_;
+auto Scheduler::openFile( const std::string &path ) -> FileIOAwaitable<Task<void>> {
+    //
+    return FileIOAwaitable<Task<void>>{ /* Context */ *this, path };
 };
 
 }  // namespace poller::io
