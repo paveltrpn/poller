@@ -33,7 +33,6 @@ struct FileIOAwaitable final {
         auto newFileIOTask = []( uv_loop_t *loop, FileIOCbPayload *payload ) -> void {
             auto openRqst = static_cast<uv_fs_t *>( std::malloc( sizeof( uv_fs_t ) ) );
 
-            // openData_.coro = coro;
             uv_handle_set_data( reinterpret_cast<uv_handle_t *>( openRqst ), payload );
 
             // Coroutine resume callback.

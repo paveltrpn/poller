@@ -128,7 +128,7 @@ private:
     auto stop() -> void {
         // Unref uv_async_t to release event loop.
         uv_unref( reinterpret_cast<uv_handle_t *>( &timeoutAsyncWakeup_ ) );
-        uv_unref( reinterpret_cast<uv_handle_t *>( &fileIOQueueMutex_ ) );
+        uv_unref( reinterpret_cast<uv_handle_t *>( &fileIOAsyncWakeup_ ) );
 
         // Work out unfinished jobs.
         uv_async_send( &timeoutAsyncWakeup_ );
