@@ -36,6 +36,16 @@ struct FileIOAwaitable final {
 
             // Coroutine resume callback.
             auto onFiresCb = []( uv_fs_t *openRqst ) -> void {
+                if ( openRqst->result < 0 ) {
+                    std::println( "Open error: {}", uv_strerror( openRqst->result ) );
+                } else {
+                    uv_file opened_fd = openRqst->result;
+                    std::println( "File successfully opened with FD: {}", opened_fd );
+
+                    // File descriptor can be read, written, or closed here
+                }
+                uv_fs_req_cleanup( openRqst );  // Must always clean up the requ
+
                 auto coroHandle = std::coroutine_handle<typename T::promise_type>::from_address( openRqst->data );
 
                 if ( !coroHandle ) {
@@ -43,11 +53,6 @@ struct FileIOAwaitable final {
                 } else {
                     coroHandle.resume();
                 }
-
-                uv_close( reinterpret_cast<uv_handle_t *>( openRqst ), []( uv_handle_t *handle ) -> void {
-                    //
-                    std::free( handle );
-                } );
             };
 
             int r = uv_fs_open( loop, openRqst, "example.txt", O_RDONLY, 0, onFiresCb );
