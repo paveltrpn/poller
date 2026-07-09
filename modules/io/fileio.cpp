@@ -38,21 +38,20 @@ struct FileIOAwaitable final {
 
             // Coroutine resume callback.
             auto onFiresCb = []( uv_fs_t *openRqst ) -> void {
-                auto payload = static_cast<TimeoutCbPayload *>( openRqst->data );
+                auto payload = static_cast<FileIOCbPayload *>( openRqst->data );
 
-                if ( openRqst->result < 0 ) {
-                    std::println( "Open error: {}", uv_strerror( openRqst->result ) );
-                } else {
-                    uv_file opened_fd = openRqst->result;
-                    std::println( "File successfully opened with FD: {}", opened_fd );
+                payload->opentResult = openRqst->result;
 
-                    // File descriptor can be read, written, or closed here.
-                }
+                // std::println( "Open error: {}", uv_strerror( openRqst->result ) );
+
+                // File descriptor can be read, written, or closed here.
+                // uv_file opened_fd = openRqst->result;
+                // std::println( "File successfully opened with FD: {}", opened_fd );
 
                 // Must always clean up the request.
                 uv_fs_req_cleanup( openRqst );
 
-                auto coroHandle = std::coroutine_handle<typename T::promise_type>::from_address( openRqst->data );
+                auto coroHandle = std::coroutine_handle<typename T::promise_type>::from_address( payload->coro );
 
                 if ( !coroHandle ) {
                     log::error()( "bad coro handle!" );
@@ -73,10 +72,10 @@ struct FileIOAwaitable final {
         context_.scheduleFileIO( newFileIOTask, &payload_ );
     }
 
-    // [[nodiscard]]
-    auto await_resume() const noexcept -> void {
+    [[nodiscard]]
+    auto await_resume() const noexcept -> size_t {
         //
-        // return openResult_;
+        return payload_.opentResult;
     }
 
     Scheduler &context_;

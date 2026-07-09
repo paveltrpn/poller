@@ -12,8 +12,8 @@ poller::io::Scheduler shed{};
 
 auto open() -> poller::io::Task<void> {
     std::println( "try open file..." );
-    co_await shed.openFile( "none" );
-    std::println( "file opened!" );
+    const auto res = co_await shed.openFile( "none" );
+    std::println( "file operation result = {}", res );
 }
 
 auto main( int argc, char **argv ) -> int {
