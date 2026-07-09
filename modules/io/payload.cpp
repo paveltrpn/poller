@@ -1,6 +1,8 @@
 
 module;
 
+#include <string>
+
 #include <uv.h>
 
 export module io:payload;
@@ -14,6 +16,7 @@ export struct TimeoutCbPayload {
 
 export struct FileIOCbPayload {
     void *coro;
+    std::string path{};
     size_t opentResult;
 };
 

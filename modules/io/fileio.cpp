@@ -20,7 +20,7 @@ export template <typename T>
 struct FileIOAwaitable final {
     FileIOAwaitable( Scheduler &context, std::string path )
         : context_( context )
-        , path_{ std::move( path ) } {};
+        , payload_{ nullptr, std::move( path ), 0 } {};
 
     [[nodiscard]]
     auto await_ready() const noexcept -> bool {
@@ -30,14 +30,16 @@ struct FileIOAwaitable final {
 
     auto await_suspend( std::coroutine_handle<typename T::promise_type> coroHandle ) noexcept -> void {
         // Execute on event loop.
-        auto newFileIOTask = []( uv_loop_t *loop, void *coro ) -> void {
+        auto newFileIOTask = []( uv_loop_t *loop, FileIOCbPayload *payload ) -> void {
             auto openRqst = static_cast<uv_fs_t *>( std::malloc( sizeof( uv_fs_t ) ) );
 
             // openData_.coro = coro;
-            uv_handle_set_data( reinterpret_cast<uv_handle_t *>( openRqst ), coro );
+            uv_handle_set_data( reinterpret_cast<uv_handle_t *>( openRqst ), payload );
 
             // Coroutine resume callback.
             auto onFiresCb = []( uv_fs_t *openRqst ) -> void {
+                auto payload = static_cast<TimeoutCbPayload *>( openRqst->data );
+
                 if ( openRqst->result < 0 ) {
                     std::println( "Open error: {}", uv_strerror( openRqst->result ) );
                 } else {
@@ -59,14 +61,16 @@ struct FileIOAwaitable final {
                 }
             };
 
-            int r = uv_fs_open( loop, openRqst, "example.txt", O_RDONLY, 0, onFiresCb );
+            int r = uv_fs_open( loop, openRqst, payload->path.c_str(), O_RDONLY, 0, onFiresCb );
             if ( r < 0 ) {
                 std::println( "Failed to initiate open: {}", uv_strerror( r ) );
                 return;
             }
         };
 
-        //context_.scheduleFileIO( newFileIOTask, coroHandle.address() );
+        payload_.coro = coroHandle.address();
+
+        context_.scheduleFileIO( newFileIOTask, &payload_ );
     }
 
     // [[nodiscard]]
@@ -76,7 +80,7 @@ struct FileIOAwaitable final {
     }
 
     Scheduler &context_;
-    std::string path_{};
+    FileIOCbPayload payload_{};
 };
 
 auto Scheduler::openFile( const std::string &path ) -> FileIOAwaitable<Task<void>> {
