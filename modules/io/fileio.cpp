@@ -15,6 +15,11 @@ import :async;
 
 namespace poller::io {
 
+struct FileIOCbPayload {
+    void *coro;
+    size_t opentResult;
+};
+
 export template <typename T>
 struct FileIOAwaitable final {
     FileIOAwaitable( Scheduler &context, std::string path )
@@ -32,6 +37,7 @@ struct FileIOAwaitable final {
         auto newFileIOTask = []( uv_loop_t *loop, void *coro ) -> void {
             auto openRqst = static_cast<uv_fs_t *>( std::malloc( sizeof( uv_fs_t ) ) );
 
+            // openData_.coro = coro;
             uv_handle_set_data( reinterpret_cast<uv_handle_t *>( openRqst ), coro );
 
             // Coroutine resume callback.
@@ -42,9 +48,11 @@ struct FileIOAwaitable final {
                     uv_file opened_fd = openRqst->result;
                     std::println( "File successfully opened with FD: {}", opened_fd );
 
-                    // File descriptor can be read, written, or closed here
+                    // File descriptor can be read, written, or closed here.
                 }
-                uv_fs_req_cleanup( openRqst );  // Must always clean up the requ
+
+                // Must always clean up the request.
+                uv_fs_req_cleanup( openRqst );
 
                 auto coroHandle = std::coroutine_handle<typename T::promise_type>::from_address( openRqst->data );
 
@@ -65,8 +73,10 @@ struct FileIOAwaitable final {
         context_.schedule( newFileIOTask, coroHandle.address() );
     }
 
+    // [[nodiscard]]
     auto await_resume() const noexcept -> void {
         //
+        // return openResult_;
     }
 
     Scheduler &context_;

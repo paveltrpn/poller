@@ -78,6 +78,6 @@ target_sources(io
     PUBLIC FILE_SET CXX_MODULES FILES
     ${MOD_IO_SRC}
 )
-target_link_libraries(io log uv)
+target_link_libraries(io log uv poller_std)
 
 add_subdirectory(test)

@@ -13,6 +13,10 @@ import :async;
 
 namespace poller::io {
 
+struct TimeoutCbPayload {
+    void *coro;
+};
+
 export template <typename T>
 struct TimeoutAwaitable final {
     TimeoutAwaitable( Scheduler &context, uint64_t timeout )

@@ -20,12 +20,12 @@ target_link_libraries(uvtcp uv)
 add_executable(timer
     io/timer.cpp
 )
-target_link_libraries(timer uv io)
+target_link_libraries(timer uv io poller_std)
 
 add_executable(fileio
     io/fileio.cpp
 )
-target_link_libraries(fileio uv io)
+target_link_libraries(fileio uv io poller_std)
 
 
 
