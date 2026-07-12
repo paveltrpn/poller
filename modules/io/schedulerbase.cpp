@@ -89,9 +89,9 @@ private:
 
         // Execute tasks. Every task create libuv asunchronius
         // job throgh handles.
-        while ( !timeoutQueue_.is_empty() ) {
-            auto item = std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>;
-            timeoutQueue_.pop( item );
+        while ( !ctx->timeoutQueue_.is_empty() ) {
+            auto item = std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>{};
+            ctx->timeoutQueue_.pop( item );
             auto [task, payload] = item;
             task( ctx->loop_, payload );
         }
@@ -100,9 +100,9 @@ private:
     static auto fileioAsyncCallback( uv_async_t *handle ) -> void {
         auto *ctx = static_cast<SchedulerBase *>( handle->data );
 
-        while ( !fileIOQueue_.is_empty() ) {
-            auto item = std::pair<std::function<void( uv_loop_t *, FileIOCbPayload * )>, FileIOCbPayload *>;
-            fileIOQueue_.pop( item );
+        while ( !ctx->fileIOQueue_.is_empty() ) {
+            auto item = std::pair<std::function<void( uv_loop_t *, FileIOCbPayload * )>, FileIOCbPayload *>{};
+            ctx->fileIOQueue_.pop( item );
             auto [task, payload] = item;
             task( ctx->loop_, payload );
         }
