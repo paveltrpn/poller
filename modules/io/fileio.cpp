@@ -82,6 +82,7 @@ struct FileIOAwaitable final {
     }
 
     Scheduler &context_;
+    // Store FileIOCbPayload by base class ptr.
     std::shared_ptr<AsyncJobPayload> payload_{};
 };
 

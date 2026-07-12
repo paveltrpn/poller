@@ -85,7 +85,7 @@ protected:
     //
     uv_async_t asyncWakeup_{};
     poller::locking_queue<std::pair<std::function<void( uv_loop_t *, AsyncJobPayload * )>, AsyncJobPayload *>>
-      asyncJobQueue_{ 1024 };
+      asyncJobQueue_{ 128 };
 
 private:
     // Main and only uv loop handle.

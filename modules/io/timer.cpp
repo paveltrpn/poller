@@ -69,6 +69,7 @@ struct TimeoutAwaitable final {
     }
 
     Scheduler &context_;
+    // Store TimeoutCbPayload by base class ptr.
     std::shared_ptr<AsyncJobPayload> payload_{};
 };
 
