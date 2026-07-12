@@ -12,7 +12,6 @@ export module poller_std:queue;
 
 namespace poller {
 
-// Single producer single consumer lock-free queue.
 export template <typename T>
 struct spsc_lock_free_queue {
 public:
@@ -56,11 +55,10 @@ private:
     std::atomic<std::size_t> tail_{ 0 };
 };
 
-// Lock based queue.
 export template <typename T>
-struct queue {
+struct locking_queue {
 public:
-    queue( std::size_t capacity )
+    locking_queue( std::size_t capacity )
         : capacity_{ capacity }
         , buffer_( capacity ) {}
 
@@ -106,12 +104,23 @@ public:
         return true;
     }
 
-private:
-    [[nodiscard]] auto next( std::size_t idx ) const noexcept -> size_t { return ( ( idx + 1 ) % capacity_ ); }
+    [[nodiscard]]
+    auto next( std::size_t idx ) const noexcept -> size_t {
+        //
+        return ( ( idx + 1 ) % capacity_ );
+    }
 
-    [[nodiscard]] auto is_empty() const noexcept -> bool { return ( head_ == tail_ ); }
+    [[nodiscard]]
+    auto is_empty() const noexcept -> bool {
+        //
+        return ( head_ == tail_ );
+    }
 
-    [[nodiscard]] auto is_full() const noexcept -> bool { return ( next( tail_ ) == head_ ); }
+    [[nodiscard]]
+    auto is_full() const noexcept -> bool {
+        //
+        return ( next( tail_ ) == head_ );
+    }
 
 private:
     std::mutex mtx_;

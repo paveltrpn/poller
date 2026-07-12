@@ -13,6 +13,7 @@ module;
 export module io:schedulerbase;
 
 import log;
+import poller_std;
 import :payload;
 
 namespace poller::io {
@@ -67,20 +68,14 @@ struct SchedulerBase {
 protected:
     // Submit callback to event loop.
     void scheduleTimeout( std::function<void( uv_loop_t *, TimeoutCbPayload * )> task, TimeoutCbPayload *p ) {
-        {
-            std::lock_guard<std::mutex> lock( timeoutQueueMutex_ );
-            timeoutQueue_.emplace( std::move( task ), p );
-        }
+        timeoutQueue_.push( std::make_pair( std::move( task ), p ) );
 
         // Wakeup event loop and process task queue.
         uv_async_send( &timeoutAsyncWakeup_ );
     }
 
     void scheduleFileIO( std::function<void( uv_loop_t *, FileIOCbPayload * )> task, FileIOCbPayload *p ) {
-        {
-            std::lock_guard<std::mutex> lock( fileIOQueueMutex_ );
-            fileIOQueue_.emplace( std::move( task ), p );
-        }
+        fileIOQueue_.push( std::make_pair( std::move( task ), p ) );
 
         // Wakeup event loop and process task queue.
         uv_async_send( &fileIOAsyncWakeup_ );
@@ -91,36 +86,24 @@ private:
     // is called.
     static auto timeoutAsyncCallback( uv_async_t *handle ) -> void {
         auto *ctx = static_cast<SchedulerBase *>( handle->data );
-        std::queue<std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>> local_queue;
-
-        // Move tasks from shared queue into local queue to
-        // release the mutex as fast as we can.
-        {
-            std::lock_guard<std::mutex> lock( ctx->timeoutQueueMutex_ );
-            std::swap( local_queue, ctx->timeoutQueue_ );
-        }
 
         // Execute tasks. Every task create libuv asunchronius
         // job throgh handles.
-        while ( !local_queue.empty() ) {
-            auto [task, payload] = std::move( local_queue.front() );
-            local_queue.pop();
+        while ( !timeoutQueue_.is_empty() ) {
+            auto item = std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>;
+            timeoutQueue_.pop( item );
+            auto [task, payload] = item;
             task( ctx->loop_, payload );
         }
     }
 
     static auto fileioAsyncCallback( uv_async_t *handle ) -> void {
         auto *ctx = static_cast<SchedulerBase *>( handle->data );
-        std::queue<std::pair<std::function<void( uv_loop_t *, FileIOCbPayload * )>, FileIOCbPayload *>> local_queue;
 
-        {
-            std::lock_guard<std::mutex> lock( ctx->fileIOQueueMutex_ );
-            std::swap( local_queue, ctx->fileIOQueue_ );
-        }
-
-        while ( !local_queue.empty() ) {
-            auto [task, payload] = std::move( local_queue.front() );
-            local_queue.pop();
+        while ( !fileIOQueue_.is_empty() ) {
+            auto item = std::pair<std::function<void( uv_loop_t *, FileIOCbPayload * )>, FileIOCbPayload *>;
+            fileIOQueue_.pop( item );
+            auto [task, payload] = item;
             task( ctx->loop_, payload );
         }
     }
@@ -144,13 +127,13 @@ private:
 
     //
     uv_async_t timeoutAsyncWakeup_{};
-    std::queue<std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>> timeoutQueue_{};
-    std::mutex timeoutQueueMutex_{};
+    poller::locking_queue<std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>>
+      timeoutQueue_{ 1024 };
 
     //
     uv_async_t fileIOAsyncWakeup_{};
-    std::queue<std::pair<std::function<void( uv_loop_t *, FileIOCbPayload * )>, FileIOCbPayload *>> fileIOQueue_{};
-    std::mutex fileIOQueueMutex_{};
+    poller::locking_queue<std::pair<std::function<void( uv_loop_t *, FileIOCbPayload * )>, FileIOCbPayload *>>
+      fileIOQueue_{ 1024 };
 };
 
 }  // namespace poller::io
