@@ -1,11 +1,7 @@
 
 module;
 
-#include <print>
 #include <thread>
-#include <mutex>
-#include <condition_variable>
-#include <queue>
 #include <functional>
 
 #include "uv.h"
@@ -65,22 +61,6 @@ struct SchedulerBase {
         log::info()( "closing app..." );
     }
 
-protected:
-    // Submit callback to event loop.
-    void scheduleTimeout( std::function<void( uv_loop_t *, TimeoutCbPayload * )> task, TimeoutCbPayload *p ) {
-        timeoutQueue_.push( std::make_pair( std::move( task ), p ) );
-
-        // Wakeup event loop and process task queue.
-        uv_async_send( &timeoutAsyncWakeup_ );
-    }
-
-    void scheduleFileIO( std::function<void( uv_loop_t *, FileIOCbPayload * )> task, FileIOCbPayload *p ) {
-        fileIOQueue_.push( std::make_pair( std::move( task ), p ) );
-
-        // Wakeup event loop and process task queue.
-        uv_async_send( &fileIOAsyncWakeup_ );
-    }
-
 private:
     // This static method executes inside event loop when uv_async_send()
     // is called.
@@ -118,13 +98,7 @@ private:
         uv_async_send( &fileIOAsyncWakeup_ );
     }
 
-private:
-    // Main and only uv loop handle.
-    uv_loop_t *loop_{};
-
-    // Loop thread.
-    std::unique_ptr<std::thread> thread_{};
-
+protected:
     //
     uv_async_t timeoutAsyncWakeup_{};
     poller::locking_queue<std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>>
@@ -134,6 +108,13 @@ private:
     uv_async_t fileIOAsyncWakeup_{};
     poller::locking_queue<std::pair<std::function<void( uv_loop_t *, FileIOCbPayload * )>, FileIOCbPayload *>>
       fileIOQueue_{ 1024 };
+
+private:
+    // Main and only uv loop handle.
+    uv_loop_t *loop_{};
+
+    // Loop thread.
+    std::unique_ptr<std::thread> thread_{};
 };
 
 }  // namespace poller::io
