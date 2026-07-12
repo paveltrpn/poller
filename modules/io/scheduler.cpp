@@ -36,18 +36,11 @@ public:
 
 private:
     // Submit callback to event loop.
-    void scheduleTimeout( std::function<void( uv_loop_t *, TimeoutCbPayload * )> task, TimeoutCbPayload *p ) {
-        timeoutQueue_.push( std::make_pair( std::move( task ), p ) );
+    void schedule( std::function<void( uv_loop_t *, AsyncJobPayload * )> task, AsyncJobPayload *p ) {
+        asyncJobQueue_.push( std::make_pair( std::move( task ), p ) );
 
         // Wakeup event loop and process task queue.
-        uv_async_send( &timeoutAsyncWakeup_ );
-    }
-
-    void scheduleFileIO( std::function<void( uv_loop_t *, FileIOCbPayload * )> task, FileIOCbPayload *p ) {
-        fileIOQueue_.push( std::make_pair( std::move( task ), p ) );
-
-        // Wakeup event loop and process task queue.
-        uv_async_send( &fileIOAsyncWakeup_ );
+        uv_async_send( &asyncWakeup_ );
     }
 };
 

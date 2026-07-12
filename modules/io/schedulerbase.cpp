@@ -27,18 +27,14 @@ struct SchedulerBase {
 
             // Initialized uv_async_t keep loop in polling phase (loop
             // is "sleep").
-            uv_async_init( loop_, &timeoutAsyncWakeup_, timeoutAsyncCallback );
-            timeoutAsyncWakeup_.data = this;
-
-            uv_async_init( loop_, &fileIOAsyncWakeup_, fileioAsyncCallback );
-            fileIOAsyncWakeup_.data = this;
+            uv_async_init( loop_, &asyncWakeup_, asyncCallback );
+            asyncWakeup_.data = this;
 
             // Start event loop.
             auto more = uv_run( loop_, UV_RUN_DEFAULT );
 
             // Gracefull shutdown.
-            uv_close( reinterpret_cast<uv_handle_t *>( &timeoutAsyncWakeup_ ), nullptr );
-            uv_close( reinterpret_cast<uv_handle_t *>( &fileIOAsyncWakeup_ ), nullptr );
+            uv_close( reinterpret_cast<uv_handle_t *>( &asyncWakeup_ ), nullptr );
             // Finish still running close callbacks.
             uv_run( loop_, UV_RUN_DEFAULT );
             uv_loop_close( loop_ );
@@ -64,25 +60,14 @@ struct SchedulerBase {
 private:
     // This static method executes inside event loop when uv_async_send()
     // is called.
-    static auto timeoutAsyncCallback( uv_async_t *handle ) -> void {
+    static auto asyncCallback( uv_async_t *handle ) -> void {
         auto *ctx = static_cast<SchedulerBase *>( handle->data );
 
         // Execute tasks. Every task create libuv asunchronius
         // job throgh handles.
-        while ( !ctx->timeoutQueue_.is_empty() ) {
-            auto item = std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>{};
-            ctx->timeoutQueue_.pop( item );
-            auto [task, payload] = item;
-            task( ctx->loop_, payload );
-        }
-    }
-
-    static auto fileioAsyncCallback( uv_async_t *handle ) -> void {
-        auto *ctx = static_cast<SchedulerBase *>( handle->data );
-
-        while ( !ctx->fileIOQueue_.is_empty() ) {
-            auto item = std::pair<std::function<void( uv_loop_t *, FileIOCbPayload * )>, FileIOCbPayload *>{};
-            ctx->fileIOQueue_.pop( item );
+        while ( !ctx->asyncJobQueue_.is_empty() ) {
+            auto item = std::pair<std::function<void( uv_loop_t *, AsyncJobPayload * )>, AsyncJobPayload *>{};
+            ctx->asyncJobQueue_.pop( item );
             auto [task, payload] = item;
             task( ctx->loop_, payload );
         }
@@ -90,24 +75,17 @@ private:
 
     auto stop() -> void {
         // Unref uv_async_t to release event loop.
-        uv_unref( reinterpret_cast<uv_handle_t *>( &timeoutAsyncWakeup_ ) );
-        uv_unref( reinterpret_cast<uv_handle_t *>( &fileIOAsyncWakeup_ ) );
+        uv_unref( reinterpret_cast<uv_handle_t *>( &asyncWakeup_ ) );
 
         // Work out unfinished jobs.
-        uv_async_send( &timeoutAsyncWakeup_ );
-        uv_async_send( &fileIOAsyncWakeup_ );
+        uv_async_send( &asyncWakeup_ );
     }
 
 protected:
     //
-    uv_async_t timeoutAsyncWakeup_{};
-    poller::locking_queue<std::pair<std::function<void( uv_loop_t *, TimeoutCbPayload * )>, TimeoutCbPayload *>>
-      timeoutQueue_{ 1024 };
-
-    //
-    uv_async_t fileIOAsyncWakeup_{};
-    poller::locking_queue<std::pair<std::function<void( uv_loop_t *, FileIOCbPayload * )>, FileIOCbPayload *>>
-      fileIOQueue_{ 1024 };
+    uv_async_t asyncWakeup_{};
+    poller::locking_queue<std::pair<std::function<void( uv_loop_t *, AsyncJobPayload * )>, AsyncJobPayload *>>
+      asyncJobQueue_{ 1024 };
 
 private:
     // Main and only uv loop handle.

@@ -5,6 +5,7 @@ module;
 #include <string>
 #include <cstdlib>
 #include <coroutine>
+#include <memory>
 
 #include <uv.h>
 
@@ -20,7 +21,7 @@ export template <typename T>
 struct FileIOAwaitable final {
     FileIOAwaitable( Scheduler &context, std::string path )
         : context_( context )
-        , payload_{ nullptr, std::move( path ), 0 } {};
+        , payload_{ std::shared_ptr<FileIOCbPayload>( new FileIOCbPayload{ nullptr, std::move( path ), 0 } ) } {};
 
     [[nodiscard]]
     auto await_ready() const noexcept -> bool {
@@ -30,7 +31,7 @@ struct FileIOAwaitable final {
 
     auto await_suspend( std::coroutine_handle<typename T::promise_type> coroHandle ) noexcept -> void {
         // Execute on event loop.
-        auto newFileIOTask = []( uv_loop_t *loop, FileIOCbPayload *payload ) -> void {
+        auto newFileIOTask = []( uv_loop_t *loop, AsyncJobPayload *payload ) -> void {
             auto openRqst = static_cast<uv_fs_t *>( std::malloc( sizeof( uv_fs_t ) ) );
 
             uv_handle_set_data( reinterpret_cast<uv_handle_t *>( openRqst ), payload );
@@ -59,26 +60,29 @@ struct FileIOAwaitable final {
                 }
             };
 
-            int r = uv_fs_open( loop, openRqst, payload->path.c_str(), O_RDONLY, 0, onFiresCb );
+            auto p = static_cast<FileIOCbPayload *>( payload );
+
+            int r = uv_fs_open( loop, openRqst, p->path.c_str(), O_RDONLY, 0, onFiresCb );
             if ( r < 0 ) {
                 std::println( "Failed to initiate open: {}", uv_strerror( r ) );
                 return;
             }
         };
 
-        payload_.coro = coroHandle.address();
+        payload_->coro = coroHandle.address();
 
-        context_.scheduleFileIO( newFileIOTask, &payload_ );
+        context_.schedule( newFileIOTask, payload_.get() );
     }
 
     [[nodiscard]]
     auto await_resume() const noexcept -> size_t {
         //
-        return payload_.opentResult;
+        auto p = static_cast<FileIOCbPayload *>( payload_.get() );
+        return p->opentResult;
     }
 
     Scheduler &context_;
-    FileIOCbPayload payload_{};
+    std::shared_ptr<AsyncJobPayload> payload_{};
 };
 
 auto Scheduler::openFile( const std::string &path ) -> FileIOAwaitable<Task<void>> {

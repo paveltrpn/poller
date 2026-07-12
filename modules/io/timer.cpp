@@ -3,6 +3,7 @@ module;
 
 #include <cstdlib>
 #include <coroutine>
+#include <memory>
 
 #include <uv.h>
 
@@ -18,7 +19,7 @@ export template <typename T>
 struct TimeoutAwaitable final {
     TimeoutAwaitable( Scheduler &context, uint64_t timeout )
         : context_( context )
-        , payload_{ nullptr, timeout } {};
+        , payload_{ std::shared_ptr<TimeoutCbPayload>( new TimeoutCbPayload{ nullptr, timeout } ) } {};
 
     [[nodiscard]]
     auto await_ready() const noexcept -> bool {
@@ -28,16 +29,18 @@ struct TimeoutAwaitable final {
 
     auto await_suspend( std::coroutine_handle<typename T::promise_type> coroHandle ) noexcept -> void {
         // Execute on event loop.
-        auto newTimerTask = []( uv_loop_t *loop, TimeoutCbPayload *payload ) -> void {
+        auto newTimerTask = []( uv_loop_t *loop, AsyncJobPayload *payload ) -> void {
             auto timer = static_cast<uv_timer_t *>( std::malloc( sizeof( uv_timer_t ) ) );
-            auto timeout{ payload->timeout };
+
+            auto p = static_cast<TimeoutCbPayload *>( payload );
+            auto timeout{ p->timeout };
             auto repeat{ 0 };
 
             uv_handle_set_data( reinterpret_cast<uv_handle_t *>( timer ), payload );
 
             // Coroutine resume callback.
             auto onFiresCb = []( uv_timer_t *timer ) -> void {
-                auto payload = static_cast<TimeoutCbPayload *>( timer->data );
+                auto payload = static_cast<AsyncJobPayload *>( timer->data );
                 auto coroHandle = std::coroutine_handle<typename T::promise_type>::from_address( payload->coro );
 
                 if ( !coroHandle ) {
@@ -56,9 +59,9 @@ struct TimeoutAwaitable final {
             uv_timer_start( timer, onFiresCb, timeout, repeat );
         };
 
-        payload_.coro = coroHandle.address();
+        payload_->coro = coroHandle.address();
 
-        context_.scheduleTimeout( newTimerTask, &payload_ );
+        context_.schedule( newTimerTask, payload_.get() );
     }
 
     auto await_resume() const noexcept -> void {
@@ -66,7 +69,7 @@ struct TimeoutAwaitable final {
     }
 
     Scheduler &context_;
-    TimeoutCbPayload payload_{};
+    std::shared_ptr<AsyncJobPayload> payload_{};
 };
 
 auto Scheduler::timeout( uint64_t timeout ) -> TimeoutAwaitable<Task<void>> {

@@ -9,13 +9,15 @@ export module io:payload;
 
 namespace poller::io {
 
-export struct TimeoutCbPayload {
+export struct AsyncJobPayload {
     void *coro{};
+};
+
+export struct TimeoutCbPayload final : public AsyncJobPayload {
     uint64_t timeout{};
 };
 
-export struct FileIOCbPayload {
-    void *coro;
+export struct FileIOCbPayload final : public AsyncJobPayload {
     std::string path{};
     size_t opentResult;
 };
