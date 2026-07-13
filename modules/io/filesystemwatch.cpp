@@ -75,6 +75,7 @@ struct FilesystemWatchAwaitable final {
     }
 
     Scheduler &context_;
+    // Store FilesystemWatchCbPayload by base class ptr.
     std::shared_ptr<AsyncJobPayload> payload_{};
 };
 
