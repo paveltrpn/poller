@@ -22,8 +22,10 @@ export struct FileIOCbPayload final : public AsyncJobPayload {
     size_t opentResult;
 };
 
-export struct FilewatchCbPayload final : public AsyncJobPayload {
+export struct FilesystemWatchCbPayload final : public AsyncJobPayload {
     std::string path{};
+    int status{};
+    int events{};
 };
 
 }  // namespace poller::io

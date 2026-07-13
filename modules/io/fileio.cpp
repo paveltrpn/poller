@@ -39,7 +39,6 @@ struct FileIOAwaitable final {
             // Coroutine resume callback.
             auto onFiresCb = []( uv_fs_t *openRqst ) -> void {
                 auto payload = static_cast<FileIOCbPayload *>( openRqst->data );
-
                 payload->opentResult = openRqst->result;
 
                 // std::println( "Open error: {}", uv_strerror( openRqst->result ) );

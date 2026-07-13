@@ -27,5 +27,10 @@ add_executable(fileio
 )
 target_link_libraries(fileio uv io poller_std)
 
+add_executable(filesystemwatch
+    io/filesystemwatch.cpp
+)
+target_link_libraries(filesystemwatch uv io poller_std)
+
 
 
