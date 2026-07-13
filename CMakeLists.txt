@@ -80,4 +80,4 @@ target_sources(io
 )
 target_link_libraries(io log uv poller_std)
 
-add_subdirectory(test)
+add_subdirectory(examples)
