@@ -35,6 +35,7 @@ struct SchedulerBase {
 
             // Gracefull shutdown.
             uv_close( reinterpret_cast<uv_handle_t *>( &asyncWakeup_ ), nullptr );
+
             // Finish still running close callbacks.
             uv_run( loop_, UV_RUN_DEFAULT );
             uv_loop_close( loop_ );
@@ -49,7 +50,11 @@ struct SchedulerBase {
     virtual ~SchedulerBase() {
         stop();
 
+        log::info()( "joining loop thread..." );
         thread_->join();
+
+        // log::info()( "detach loop thread..." );
+        // thread_->detach();
 
         // Release loop pointer.
         std::free( loop_ );

@@ -23,7 +23,10 @@ struct FilesystemWatchAwaitable final {
         , payload_{ std::shared_ptr<FilesystemWatchCbPayload>(
             new FilesystemWatchCbPayload{ nullptr, std::move( path ), 0, 0 } ) } {};
 
-    [[nodiscard]] auto await_ready() const noexcept -> bool { return false; }
+    [[nodiscard]] auto await_ready() const noexcept -> bool {
+        //
+        return false;
+    }
 
     auto await_suspend( std::coroutine_handle<typename T::promise_type> coroHandle ) -> void {
         auto newFilesystemWatchTask = []( uv_loop_t *loop, AsyncJobPayload *payload ) -> void {

@@ -24,6 +24,7 @@ export template <typename T>
 struct FilesystemWatchAwaitable;
 
 export struct Scheduler final : SchedulerBase {
+public:
     template <typename T>
     friend struct TimeoutAwaitable;
 

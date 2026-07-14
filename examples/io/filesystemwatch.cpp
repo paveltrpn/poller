@@ -40,11 +40,11 @@ auto watch( const std::string &path ) -> poller::io::Task<void> {
     // }
 
     if ( events & UV_RENAME ) {
-        std::println( "Event: Renamed\n" );
+        std::println( "Event: Renamed" );
     }
 
     if ( events & UV_CHANGE ) {
-        std::println( "Event: Modified\n" );
+        std::println( "Event: Modified" );
     }
 }
 
