@@ -13,7 +13,7 @@ export module poller_std:threadpool;
 
 import :workstealingdeque;
 
-namespace poller {
+namespace poller::pstd {
 
 constexpr auto kCancelled = 1;
 constexpr auto kInvoked = 1 << 1;
@@ -378,9 +378,9 @@ private:
     std::atomic<unsigned> tasks_count_;
 
     std::vector<std::thread> threads_;
-    std::vector<WorkStealingDeque<Task *>> queues_;
+    std::vector<poller::WorkStealingDeque<Task *>> queues_;
 };
 
 inline thread_local unsigned ThreadPool::index_{ 0 };
 
-}  // namespace poller
+}  // namespace poller::pstd
