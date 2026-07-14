@@ -53,7 +53,7 @@ struct FileIOAwaitable final {
                 auto coroHandle = std::coroutine_handle<typename T::promise_type>::from_address( payload->coro );
 
                 if ( !coroHandle ) {
-                    log::error()( "bad coro handle!" );
+                    log::error()( "Bad coro handle!" );
                 } else {
                     coroHandle.resume();
                 }
@@ -63,7 +63,7 @@ struct FileIOAwaitable final {
 
             int r = uv_fs_open( loop, openRqst, p->path.c_str(), O_RDONLY, 0, onFiresCb );
             if ( r < 0 ) {
-                std::println( "Failed to initiate open: {}", uv_strerror( r ) );
+                std::println( "Failed to initiate open: {}.", uv_strerror( r ) );
                 return;
             }
         };

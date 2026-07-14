@@ -50,12 +50,12 @@ auto watch( const std::string &path ) -> poller::io::Task<void> {
 
 auto main( int argc, char **argv ) -> int {
     if ( argc < 2 ) {
-        std::println( "pass filename to watch for as second command line argument." );
+        std::println( "Pass filename to watch for as second command line argument." );
         return 0;
     }
 
     if ( argc > 2 ) {
-        std::println( "extra command line arguments ignored..." );
+        std::println( "Extra command line arguments ignored..." );
     }
 
     std::this_thread::sleep_for( 100ms );

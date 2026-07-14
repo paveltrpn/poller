@@ -48,7 +48,7 @@ struct FilesystemWatchAwaitable final {
                 auto coroHandle = std::coroutine_handle<typename T::promise_type>::from_address( payload->coro );
 
                 if ( !coroHandle ) {
-                    log::error()( "bad coro handle!" );
+                    log::error()( "Bad coro handle!" );
                 } else {
                     coroHandle.resume();
                 }
